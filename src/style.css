@@ -256,3 +256,5 @@ details.card summary{cursor:pointer;color:var(--mu);margin:0}
 details.ds{margin-bottom:12px;padding:8px 12px}
 details.ds summary{margin:0}
 .ptot b{color:var(--tx,inherit)}
+.tdadd{margin-top:10px}.row.nw{flex-wrap:nowrap}.row.nw input{flex:1;min-width:0}
+.tdopt{margin-top:6px}.tdopt summary{margin:0}.tdopt .fld{margin-top:8px}

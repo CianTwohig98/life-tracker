@@ -185,6 +185,7 @@ function vDashboard() {
     h += '<div class="card" style="margin-bottom:12px"><h2>Welcome</h2><p>Three short check-ins a day (morning, afternoon, night). Good behaviour earns XP and raises skill levels. Bad days cost a little, never as much as good days give.</p><div class="row"><button class="btn pri" data-act="startDemo">Load 90 simulated days</button><button class="btn" data-act="startFresh">Start fresh</button></div></div>';
   }
   for (const a of res.alerts) h += '<div class="note ' + (a.type === 'backfill' ? 'warn' : a.type === 'catchup' ? 'info' : 'good') + '">' + esc(a.text) + (a.date ? ' <button class="btn sm" data-act="goBackfill" data-id="' + a.date + '">Backfill</button>' : '') + '</div>';
+  h += todoCard();
   h += vRecs();
   const S = S_(), dt = r ? r.dayType : 'normal';
   const dayBadge = dt === 'rest' ? '<span class="badge rest">rest day</span>' : dt === 'fun' ? '<span class="badge fun">fun day</span>' : dt === 'cheat' ? '<span class="badge fun">cheat evening</span>' : '';
@@ -197,7 +198,6 @@ function vDashboard() {
   h += '<div class="row" style="margin:8px 0 12px"><label class="mu">Priority today</label><select data-in="priority">' + priorityOptions(day.priority) + '</select></div>';
   h += '<button class="btn pri" data-act="openSlot" data-id="' + (nextSlot || 'night') + '">' + (nextSlot ? 'Check in: ' + nextSlot : 'All check-ins done, review night') + '</button></div>';
   h += '</div>';
-  h += todoCard();
   h += '<div class="grid g2" style="margin-top:12px">' + roomsCard() + '<div class="card"><h2>Weekly goals</h2>' + (res.weekly.map(w => { const p = Math.min(100, Math.round(w.count / w.goal * 100)); return '<div class="goal"><div class="nh"><span>' + esc(w.name) + '</span><b>' + w.count + ' / ' + w.goal + '</b></div><div class="bar thin ' + (p >= 100 ? 'hi' : p >= 50 ? 'mid' : 'lo') + '"><i style="width:' + p + '%"></i></div></div>'; }).join('') || '<p class="mu">No weekly goals set.</p>') + '</div></div>';
   for (const grp of skillsByGroup()) {
     h += '<div class="sec" style="border-bottom-color:' + gcol(grp.g) + '"><h2 style="color:' + gcol(grp.g) + '">' + esc(grp.g) + '</h2><span class="unit">' + grp.skills.length + ' skills</span></div><div class="grid g3">' + grp.skills.map(s => {
@@ -422,17 +422,20 @@ function todoRow(t) {
     '<div class="tdx"><div class="tdt">' + esc(t.text) + '</div><div class="tdm"><span class="tag">' + esc(sk.name) + '</span> <span>+' + todoXp(t) + ' XP</span>' + (t.due ? ' <span class="' + (late && !t.done ? 'dn' : soon && !t.done ? 'warnc' : '') + '">' + (t.done ? '' : late ? 'overdue, ' : 'due ') + dlabel(t.due) + '</span>' : '') + (t.reward ? ' <span>Reward: ' + esc(t.reward) + '</span>' : '') + (t.done ? ' <span>done ' + dlabel(t.done) + '</span>' : '') + '</div></div>' +
     '<button class="btn sm danger" data-act="delTodo" data-id="' + t.id + '" aria-label="Delete">x</button></div>';
 }
+function todoAdd(full) {
+  return '<div class="tdadd"><div class="row nw"><input type="text" id="tdText" placeholder="Add a to-do" maxlength="140" autocomplete="off"><button class="btn pri" data-act="addTodo">Add</button></div>' +
+    (full ? '<details class="tdopt"><summary>Skill, size, due date, reward</summary><div class="fld">' +
+      '<label>Skill</label><select id="tdSkill">' + skillsByGroup().map(g => '<optgroup label="' + esc(g.g) + '">' + g.skills.map(s => opt(s.id, s.name, 'household')).join('') + '</optgroup>').join('') + '</select>' +
+      '<label>Size</label><select id="tdSize">' + TODO_SIZES.map(s => opt(s.id, s.label + ', +' + s.xp + ' XP', 'normal')).join('') + '</select>' +
+      '<label>Due</label><input type="date" id="tdDue" min="' + TODAY + '">' +
+      '<label>Reward</label><input type="text" id="tdReward" placeholder="A coffee out" maxlength="80"></div></details>' : '') + '</div>';
+}
 function vTodos() {
   const open = state.todos.filter(t => !t.done).sort(todoSort), done = state.todos.filter(t => t.done).sort((a, b) => b.done.localeCompare(a.done));
   const weekAgo = E.addDays(TODAY, -6), wkDone = done.filter(t => t.done >= weekAgo).length, wkXp = done.filter(t => t.done >= weekAgo).reduce((x, t) => x + todoXp(t), 0);
-  let h = '<div class="card">' + momentumBar(TODAY) + '</div><div class="card" style="margin-top:12px"><h2>Add a to-do</h2><div class="fld">' +
-    '<label>What</label><input type="text" id="tdText" placeholder="Repot the plant, buy train tickets, visit grandma" maxlength="140">' +
-    '<label>Skill that gets the XP</label><select id="tdSkill">' + skillsByGroup().map(g => '<optgroup label="' + esc(g.g) + '">' + g.skills.map(s => opt(s.id, s.name, 'household')).join('') + '</optgroup>').join('') + '</select>' +
-    '<label>Size</label><select id="tdSize">' + TODO_SIZES.map(s => opt(s.id, s.label + ', +' + s.xp + ' XP', 'normal')).join('') + '</select>' +
-    '<label>Due (optional)</label><input type="date" id="tdDue" min="' + TODAY + '">' +
-    '<label>Reward (optional)</label><input type="text" id="tdReward" placeholder="A coffee out, an hour of games" maxlength="80"></div>' +
-    '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="addTodo">Add to-do</button></div></div>';
-  h += '<div class="card" style="margin-top:12px"><div class="row sp"><h2 style="margin:0">Open &middot; ' + open.length + '</h2><span class="unit">last 7 days: ' + wkDone + ' done, +' + wkXp + ' XP</span></div><div style="margin-top:10px">' + (open.length ? open.map(todoRow).join('') : '<p class="mu">Nothing open. Add whatever is on your mind.</p>') + '</div></div>';
+  let h = '<div class="card"><div class="row sp"><h2 style="margin:0">To-dos &middot; ' + open.length + ' open</h2><span class="unit">7 days: ' + wkDone + ' done, +' + wkXp + ' XP</span></div>' + todoAdd(true) +
+    '<div style="margin-top:10px">' + (open.length ? open.map(todoRow).join('') : '<p class="mu">Nothing open.</p>') + '</div></div>';
+  h += '<div class="card" style="margin-top:12px">' + momentumBar(TODAY) + '</div>';
   if (done.length) h += '<details class="card" style="margin-top:12px"' + (open.length ? '' : ' open') + '><summary>Done &middot; ' + done.length + '</summary><div style="margin-top:10px">' + done.slice(0, 25).map(todoRow).join('') + (done.length > 25 ? '<p class="hint">Showing the latest 25.</p>' : '') + '</div></details>';
   return h;
 }
@@ -441,9 +444,9 @@ function momentumBar(d) {
   return '<div class="mom"><div class="momh"><b>Momentum ' + (m ? '+' + Math.round(m * 100) + '%' : 'off') + '</b><span>' + n + ' to-do' + (n === 1 ? '' : 's') + ' done ' + (d === TODAY ? 'today' : 'that day') + '</span></div><div class="momt">' + tiers.slice(1).map((x, i) => '<i class="' + (n >= i + 1 ? 'on' : '') + '"><b>' + (i + 1 === tiers.length - 1 ? (i + 1) + '+' : i + 1) + '</b>+' + Math.round(x * 100) + '%</i>').join('') + '</div></div>';
 }
 function todoCard() {
-  const open = state.todos.filter(t => !t.done).sort(todoSort); if (!open.length) return '<div class="card" style="margin-top:12px">' + momentumBar(TODAY) + '<div class="row sp" style="margin-top:10px"><h2 style="margin:0">To-dos</h2><button class="btn sm" data-act="tab" data-id="todos">Add one</button></div></div>';
-  const late = open.filter(t => t.due && t.due < TODAY).length;
-  return '<div class="card" style="margin-top:12px">' + momentumBar(TODAY) + '<div class="row sp" style="margin-top:10px"><h2 style="margin:0">To-dos &middot; ' + open.length + ' open' + (late ? ', <span class="dn">' + late + ' overdue</span>' : '') + '</h2><button class="btn sm" data-act="tab" data-id="todos">Open list</button></div><div style="margin-top:10px">' + open.slice(0, 4).map(todoRow).join('') + '</div></div>';
+  const open = state.todos.filter(t => !t.done).sort(todoSort), late = open.filter(t => t.due && t.due < TODAY).length;
+  return '<div class="card" style="margin-bottom:12px"><div class="row sp"><h2 style="margin:0">To-dos &middot; ' + open.length + ' open' + (late ? ', <span class="dn">' + late + ' overdue</span>' : '') + '</h2><button class="btn sm" data-act="tab" data-id="todos">All</button></div>' + todoAdd(false) +
+    (open.length ? '<div style="margin-top:10px">' + open.slice(0, 4).map(todoRow).join('') + '</div>' : '') + '<div style="margin-top:12px">' + momentumBar(TODAY) + '</div></div>';
 }
 
 /* ---------- skills ---------- */

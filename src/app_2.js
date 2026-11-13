@@ -130,7 +130,7 @@ const ACT = {
   },
   addTodo: () => {
     const text = ($('#tdText').value || '').trim(); if (!text) { toast('Write what needs doing'); return; }
-    state.todos.push({ id: rid('td'), text, skill: $('#tdSkill').value, size: $('#tdSize').value, due: $('#tdDue').value || null, reward: ($('#tdReward').value || '').trim(), created: TODAY, done: null });
+    state.todos.push({ id: rid('td'), text, skill: ($('#tdSkill') || {}).value || 'household', size: ($('#tdSize') || {}).value || 'normal', due: ($('#tdDue') || {}).value || null, reward: (($('#tdReward') || {}).value || '').trim(), created: TODAY, done: null });
     persist(); toast('Added'); const el = $('#tdText'); if (el) el.focus();
   },
   doneTodo: t => {
