@@ -80,6 +80,8 @@ const ACT = {
   set: t => { const day = getDay(ui.date), id = t.dataset.id; const val = t.dataset.num ? Number(t.dataset.val) : t.dataset.val; if (day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
   setc: t => { const day = getDay(ui.date), k = t.dataset.id + '_cost'; if (day.v[k] === t.dataset.val) delete day.v[k]; else day.v[k] = t.dataset.val; persist(); },
   setbool: t => { const day = getDay(ui.date), id = t.dataset.id, val = t.dataset.val === 'true'; if (id in day.v && day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
+  actopen: t => { ui.actOpen = ui.actOpen === t.dataset.id ? null : t.dataset.id; render(); },
+  allon: t => { const day = getDay(ui.date), ids = t.dataset.ids.split(','), all = ids.every(id => day.v[id] === true); ids.forEach(id => { if (all) delete day.v[id]; else day.v[id] = true; }); persist(); },
   toggle: t => { const day = getDay(ui.date), id = t.dataset.id, ind = indOf(id); const cur = id in day.v ? !!day.v[id] : ind.defaultVal === true; day.v[id] = !cur; persist(); },
   add: t => { const day = getDay(ui.date), id = t.dataset.id; const n = (E.num(day.v[id]) || 0) + Number(t.dataset.val); day.v[id] = Math.max(0, n); persist(); },
   ev: t => { const day = getDay(ui.date), id = t.dataset.id, a = Array.isArray(day.v[id]) ? day.v[id].slice() : [], i = a.indexOf(t.dataset.val); if (i >= 0) a.splice(i, 1); else a.push(t.dataset.val); day.v[id] = a; persist(); },
@@ -214,6 +216,7 @@ const ACT = {
   delTask: t => { const h = homeInd(); h.tasks = h.tasks.filter(k => k.id !== t.dataset.id); persist(); }
 };
 const INP = {
+  actsel: t => { ui.actSel[t.dataset.cat] = t.value; render(); },
   date: t => { if (t.value && t.value <= TODAY) { ui.date = t.value; render(); } },
   time: t => { const day = getDay(ui.date); if (t.value.trim() === '') { delete day.v[t.dataset.id]; persist(); return; } const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 10:30 or 1030.'); render(); return; } day.v[t.dataset.id] = p; persist(); },
   cfgtime: t => { const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 07:30 or 0730.'); render(); return; } S_()[t.dataset.path] = p; persist(); },

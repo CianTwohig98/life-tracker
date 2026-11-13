@@ -256,6 +256,22 @@ details.card summary{cursor:pointer;color:var(--mu);margin:0}
 .momt{display:flex;gap:6px;margin-top:6px}.momt i{flex:1;font-style:normal;text-align:center;border:1px solid var(--line);background:#0a0c0f;color:var(--mu);padding:4px 2px;font-size:12px}
 .momt i b{display:block;font-size:11px;font-weight:400}.momt i.on{background:var(--ok);border-color:var(--ok);color:#0b1016;font-weight:600}
 
+/* check-in v2.6: compact activity panels, chip rows, collapsed day settings */
+.act{background:var(--p1);border:1px solid var(--line);border-left:3px solid var(--gc,var(--line));border-radius:2px;margin-bottom:6px}
+.act.has{border-color:var(--line2);border-left-color:var(--gc,var(--ac))}
+.actb{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:10px;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.actb b{flex:0 0 74px;font-weight:600}
+.actb .unit{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.car{width:7px;height:7px;border-right:2px solid var(--mu);border-bottom:2px solid var(--mu);transform:rotate(45deg);margin:0 4px 3px 0;transition:transform .15s}
+.act.open .car{transform:rotate(-135deg);margin-bottom:-3px}
+.actp{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.actp select{width:100%}
+.actp .ctl{justify-content:flex-start;flex:none}
+.ind.chips .ctl{justify-content:flex-start;flex:1 1 100%}
+details.ds{margin-bottom:12px;padding:8px 12px}
+details.ds summary{margin:0}
+.ptot b{color:var(--tx,inherit)}
+
 </style>
 </head>
 <body>
@@ -347,7 +363,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 5;
+const REV = 6;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
 
@@ -385,7 +401,7 @@ function defaultConfig() {
     I({ id: 'stretch_ham', name: 'Hamstring stretches', skill: 'fitness', slot: 'morning', kind: 'binary' }),
     I({ id: 'walk', name: 'Walk', skill: 'fitness', slot: 'night', kind: 'effort', w: 1, unit: 'min', target: 30, everyN: 1, relax: true, def: 30, hint: 'Low-XP side goal: 30 min.' }),
     // ---- Nutrition
-    I({ id: 'meal_b', name: 'Breakfast', skill: 'nutrition', slot: 'afternoon', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
+    I({ id: 'meal_b', name: 'Breakfast', skill: 'nutrition', slot: 'morning', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'meal_l', name: 'Lunch', skill: 'nutrition', slot: 'afternoon', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'meal_d', name: 'Dinner', skill: 'nutrition', slot: 'night', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'water', name: 'Hydration', skill: 'nutrition', slot: 'night', kind: 'bar', w: 1, unit: 'ml', step: 250, targetKey: 'water', def: 2000, tap: 250 }),
@@ -482,6 +498,7 @@ function upgradeConfig(cfg) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 6) { const b = (cfg.indicators || []).find(i => i.id === 'meal_b'); if (b && b.slot === 'afternoon') b.slot = 'morning'; }
   if (from < 5 && cfg.settings) { cfg.settings.rhythm = cfg.settings.rhythm || {}; if (cfg.settings.rhythm[5] == null) cfg.settings.rhythm[5] = 'cheat'; cfg.settings.cheatFrom = cfg.settings.cheatFrom || '17:00'; }
   if (from < 4 && !(cfg.indicators || []).some(i => i.id === 'stretch_ham')) { const ni = JSON.parse(JSON.stringify(byId.stretch_ham)), at = (cfg.indicators || []).findIndex(i => i.id === 'walk'); if (at >= 0) cfg.indicators.splice(at, 0, ni); else cfg.indicators.push(ni); }
   if (from < 3) for (const i of (cfg.indicators || [])) {
@@ -1317,7 +1334,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = root.LifeR
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LTSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
-window.LT_BUILD="2026-11-13 17:00";
+window.LT_BUILD="2026-11-13 19:53";
 </script>
 <script>
 /* Life Tracker UI */
@@ -1347,7 +1364,7 @@ const mem = {}; let storageOk = true;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { storageOk = false; return mem[k] || null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { storageOk = false; mem[k] = v; } };
 let TODAY = todayStr(), appMode = 'real', state, res;
-const ui = { tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
+const ui = { actOpen: null, actSel: {}, tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
 (function () { const h = new Date().getHours(); ui.slot = h < 11 ? 'morning' : h < 18 ? 'afternoon' : 'night'; })();
 
 function migrate(s) {
@@ -1380,6 +1397,12 @@ const skillOf = id => cfg().skills.find(s => s.id === id);
 const indOf = id => cfg().indicators.find(i => i.id === id);
 const slotsOf = i => (i.slots && i.slots.length) ? i.slots : [i.slot];
 const isPart = i => (i.kind === 'effort' || i.kind === 'bar') && slotsOf(i).length > 1;
+/* full-day items live in the last check-in they allow (night); one-slot items stay where they are */
+const lastSlot = i => slotsOf(i).slice().sort((a, b) => E.SLOTS.indexOf(a) - E.SLOTS.indexOf(b)).pop();
+const shownIn = (i, slot) => slotsOf(i).includes(slot) && lastSlot(i) === slot;
+const SHORT = { supp_multi: 'Multivitamin', supp_d3: 'Vitamin D3', supp_zinc: 'Zinc', supp_creatine: 'Creatine', supp_water: 'Water 0.5 L', supp_protein: 'Protein 30 g', supp_mag: 'Magnesium', teeth_am: 'Teeth', teeth_pm: 'Teeth', shower: 'Shower', skincare: 'Skincare', sunscreen: 'Sunscreen', stretch_ham: 'Hamstring stretch', job_time: 'Job / PhD', study_de: 'German', study_or: 'Operations Research', reading: 'Reading', roles_found: 'Roles found', apps_sent: 'Applications sent', org_browsed: 'Browsed an organisation', uni_browsed: 'Browsed a university', coffee_chat: 'Coffee chat', outreach: 'Reached out', workout: 'Workout', walk: 'Walk' };
+const shortName = i => SHORT[i.id] || i.name;
+const ACT_CATS = [{ id: 'fitness', label: 'Fitness', skills: ['fitness'] }, { id: 'study', label: 'Study', skills: ['german', 'or', 'reading'] }, { id: 'career', label: 'Career', skills: ['career'] }];
 function partVal(day, ind, slot) {
   const p = day.parts && day.parts[ind.id];
   if (p && Object.keys(p).length) return p[slot] == null ? null : p[slot];
@@ -1485,14 +1508,14 @@ function vRecs() {
     (rec.overflow.length ? '<p class="hint">Did not fit before ' + (rec.cheatFrom ? rec.cheatFrom + ' (cheat evening)' : 'bedtime') + ': ' + esc(rec.overflow.join(', ')) + '. Move them to tomorrow or drop the lowest priority.</p>' : '') +
     (rec.notes.length ? '<ul class="recs">' + rec.notes.map(i => '<li><span class="tag">' + esc(i.skillName) + '</span><span>' + esc(i.text) + '</span></li>').join('') + '</ul>' : '') +
     (rw ? '<div class="rewards"><h2>Rewards for today</h2>' + rw + '</div>' : '') +
-    '<p class="hint">The plan is built from what is still unfulfilled today and the weekly goals, alternating career, study and body blocks around meals. It updates as you log.</p></div>';
+    '</div>';
 }
 function roomsCard() {
   const home = homeInd(), r = res.days[ui.date], rd = home && r && r.rooms && r.rooms[home.id]; if (!rd) return '';
   const rows = home.rooms.map(x => ({ id: x.id, name: x.name, lv: rd.rooms[x.id] })).sort((a, b) => a.lv - b.lv);
   return '<div class="card"><div class="row sp"><h2 style="margin:0">Household &middot; ' + Math.round(rd.total) + '%</h2><span class="unit">weakest room: ' + esc(rows[0].name) + '</span></div><div style="margin-top:12px">' +
     rows.map((x, i) => '<div class="rm' + (i === 0 && x.lv < 50 ? ' low' : '') + '"><span class="nm">' + esc(x.name) + '</span><div class="bar thin ' + barCls(x.lv) + '"><i style="width:' + Math.round(x.lv) + '%"></i></div><span class="unit">' + Math.round(x.lv) + '%</span></div>').join('') + '</div>' +
-    '<p class="hint">Each room decays daily at its own rate. The household bar is a harmonic mean of the rooms, so one filthy room drags the total down more than a clean room lifts it.</p></div>';
+    '</div>';
 }
 function vDashboard() {
   const d = ui.date, r = res.days[d], day = state.logs[d] || {};
@@ -1510,10 +1533,7 @@ function vDashboard() {
   h += '<div class="card"><h2>Needs</h2>' + res.bars.map(b => '<div class="need"><div class="nh"><span>' + esc(b.name) + '</span><b>' + (b.any ? b.pct + '%' : '-') + '</b></div><div class="bar ' + barCls(b.pct) + (b.any ? '' : ' empty') + '"><i style="width:' + (b.any ? b.pct : 0) + '%"></i></div></div>').join('') + '</div>';
   h += '<div class="card"><div class="row sp"><h2 style="margin:0">' + (d === TODAY ? 'Today' : dlabel(d)) + '</h2><div class="row">' + dayBadge + modeBadge + slotDots(d) + '</div></div>';
   h += '<div class="big ' + (dayXp(d) >= 0 ? 'pos' : 'neg') + '">' + sg(dayXp(d)) + ' <small>XP</small></div>';
-  if (dt === 'rest') h += '<p class="mu">Planned rest: study and job targets are relaxed and resting still counts as consistent.</p>';
-  if (dt === 'cheat') h += '<p class="mu">Cheat evening from ' + esc(S.cheatFrom) + ': dinner is free (no penalty, no allowance used). Work, study and the other targets still count before then.</p>';
-  if (dt === 'fun') h += '<p class="mu">Fun day: ' + S.funTreats + ' free unhealthy meals, relaxed study targets, double spending limit, gentler judgement on drinks.</p>';
-  h += '<div class="row" style="margin:8px 0"><label class="mu">Priority today</label><select data-in="priority">' + priorityOptions(day.priority) + '</select></div><p class="hint" style="margin:0 0 10px">+50% XP on it (max ' + S.priorityCap + '), if you log the morning check-in on the day.</p>';
+  h += '<div class="row" style="margin:8px 0 12px"><label class="mu">Priority today</label><select data-in="priority">' + priorityOptions(day.priority) + '</select></div>';
   h += '<button class="btn pri" data-act="openSlot" data-id="' + (nextSlot || 'night') + '">' + (nextSlot ? 'Check in: ' + nextSlot : 'All check-ins done, review night') + '</button></div>';
   h += '</div>';
   h += todoCard();
@@ -1562,7 +1582,7 @@ function questList(compact) {
   return qs.length ? qs.map(q => questRow(q, compact)).join('') : '<p class="mu">Everything claimed.</p>';
 }
 function vQuests() {
-  let h = '<div class="card" style="margin-bottom:12px"><div class="row sp"><h2 style="margin:0">Milestones and rewards</h2><button class="btn pri sm" data-act="newQuest">+ New milestone</button></div><p class="hint">Each milestone can be edited or deleted, and you can add your own at any time: pick what to count (days, totals, best single session, weeks in a row, skill level), set the target and period, then write the real-life reward. Reach the target, claim it, and collect the bonus XP.</p></div>';
+  let h = '<div class="card" style="margin-bottom:12px"><div class="row sp"><h2 style="margin:0">Milestones and rewards</h2><button class="btn pri sm" data-act="newQuest">+ New milestone</button></div></div>';
   for (const grp of skillsByGroup()) {
     const ids = grp.skills.map(s => s.id), qs = res.quests.filter(q => ids.includes(q.skill));
     if (!qs.length) continue;
@@ -1585,11 +1605,11 @@ function mealPrompt(v) {
 function partControl(ind, day) {
   const id = ind.id, slot = slotsOf(ind).includes(ui.slot) ? ui.slot : ind.slot, a = 'data-id="' + id + '" data-slot="' + slot + '"';
   const tgt = ind.kind === 'bar' ? (ind.targetKey ? S_()[ind.targetKey] : ind.target) : ind.target, u = ind.unit || (ind.kind === 'effort' ? 'min' : ''), cur = partVal(day, ind, slot);
-  const taps = ind.kind === 'bar' ? (ind.tap ? [-ind.tap, ind.tap, ind.tap * 2] : []) : [15, 30, 45, 60];
+  const taps = ind.kind === 'bar' ? (ind.tap ? [-ind.tap, ind.tap, ind.tap * 2] : []) : [15, 30, 45, 60, 90];
   const tot = day.v && day.v[id] != null ? Number(day.v[id]) : 0;
   return taps.map(n => '<button class="chp ' + (n > 0 ? 'on' : '') + '" data-act="addpart" ' + a + ' data-val="' + n + '">' + (n > 0 ? '+' : '') + n + '</button>').join('') +
-    '<input type="number" step="' + (ind.step || (ind.kind === 'effort' ? 5 : 1)) + '" ' + a + ' data-in="part" value="' + (cur == null ? '' : cur) + '"><span class="unit">' + esc(u) + ' in this slot</span>' +
-    '<div class="sub ptot"><b>Day total ' + fmt(tot) + '</b><span class="unit">/ ' + fmt(tgt) + ' ' + esc(u) + ' &middot; ' + slotsOf(ind).map(s => cap(s).slice(0, 3) + ' ' + fmt(partVal(day, ind, s) || 0)).join(' | ') + '</span></div>';
+    '<input type="number" step="' + (ind.step || (ind.kind === 'effort' ? 5 : 1)) + '" ' + a + ' data-in="part" value="' + (cur == null ? '' : cur) + '"><span class="unit">' + esc(u) + '</span>' +
+    '<span class="unit ptot">today <b>' + fmt(tot) + '</b> / ' + fmt(tgt) + '</span>';
 }
 function control(ind, v, day) {
   const id = ind.id, x = v[id], a = 'data-id="' + id + '"';
@@ -1604,7 +1624,7 @@ function control(ind, v, day) {
     case 'time': return ['06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'].map(c => '<button class="chp ' + (x === c ? 'on' : '') + '" data-act="set" ' + a + ' data-val="' + c + '">' + c + '</button>').join('') + '<input type="text" inputmode="numeric" autocomplete="off" class="tin" ' + a + ' data-in="time" placeholder="10:30" value="' + (x || '') + '"><span class="unit">type 1030 or 10:30, then Enter</span>';
     case 'tier': {
       let h = ind.options.map(o => '<button class="chp ' + (o.s < 0 ? 'bad ' : '') + (x === o.id ? 'on' : '') + '" data-act="set" ' + a + ' data-val="' + o.id + '">' + esc(o.label) + '</button>').join('');
-      if (ind.cost) h += '<div class="sub"><span class="unit">cost</span>' + E.COSTS.map(c => '<button class="chp ' + (v[id + '_cost'] === c.id ? 'on' : '') + '" data-act="setc" ' + a + ' data-val="' + c.id + '">' + esc(c.label) + '</button>').join('') + '</div>';
+      if (ind.cost && x) h += '<div class="sub"><span class="unit">cost</span>' + E.COSTS.map(c => '<button class="chp ' + (v[id + '_cost'] === c.id ? 'on' : '') + '" data-act="setc" ' + a + ' data-val="' + c.id + '">' + esc(c.label) + '</button>').join('') + '</div>';
       return h;
     }
     case 'effort': return chips([0, 15, 30, 45, 60, 90, 120, 180], x) + '<input type="number" step="5" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">min, target ' + ind.target + (ind.everyN > 1 ? ' every ' + ind.everyN + ' days' : '') + '</span>';
@@ -1635,6 +1655,30 @@ function control(ind, v, day) {
     default: return '';
   }
 }
+const ctlFor = (ind, v, day) => control(ind, v, day);
+function actValue(ind, v) {
+  const x = v[ind.id];
+  if (ind.kind === 'workout') return x ? ((E.WORKOUT_TYPES.find(t => t.id === x.type) || {}).label || x.type || 'done') + (x.min ? ' ' + x.min : '') : '';
+  if (ind.kind === 'count') return E.num(x) > 0 ? String(E.num(x)) : '';
+  return E.num(x) > 0 ? String(E.num(x)) : '';
+}
+function actCard(cat, members, v, day) {
+  const open = ui.actOpen === cat.id;
+  const sel = members.find(i => i.id === ui.actSel[cat.id]) || members.find(i => actValue(i, v)) || members[0];
+  const done = members.map(i => { const t = actValue(i, v); return t ? shortName(i) + ' ' + t : ''; }).filter(Boolean);
+  let h = '<div class="act' + (open ? ' open' : '') + (done.length ? ' has' : '') + '" style="--gc:' + scol(members[0].skill) + '"><button class="actb" data-act="actopen" data-id="' + cat.id + '"><b>' + esc(cat.label) + '</b><span class="unit">' + (done.length ? esc(done.join(', ')) : 'nothing yet') + '</span><i class="car"></i></button>';
+  if (open) {
+    const wk = res.weekly.find(w => w.id === sel.id);
+    h += '<div class="actp">' + (members.length > 1 ? '<select data-in="actsel" data-cat="' + cat.id + '">' + members.map(i => opt(i.id, shortName(i), sel.id)).join('') + '</select>' : '<b>' + esc(shortName(sel)) + '</b>') +
+      '<div class="ctl">' + ctlFor(sel, v, day) + (wk ? '<span class="unit">week ' + wk.count + ' / ' + wk.goal + '</span>' : '') + '</div></div>';
+  }
+  return h + '</div>';
+}
+function binRow(list, v) {
+  const on = i => (i.id in v) && !!v[i.id];
+  return '<div class="ind chips"><div class="ctl">' + list.map(i => '<button class="chp ' + (on(i) ? 'on' : '') + '" data-act="toggle" data-id="' + i.id + '">' + esc(shortName(i)) + '</button>').join('') +
+    (list.length > 3 ? '<button class="chp" data-act="allon" data-ids="' + list.map(i => i.id).join(',') + '">' + (list.every(on) ? 'None' : 'All') + '</button>' : '') + '</div></div>';
+}
 function vCheckin() {
   const d = ui.date, day = state.logs[d] || { v: {}, slots: {} }, v = day.v || {}, r = res.days[d], S = S_();
   const late = E.diffDays(TODAY, d);
@@ -1643,33 +1687,39 @@ function vCheckin() {
   h += '<div class="slots">' + E.SLOTS.map(s => { const sl = day.slots && day.slots[s]; return '<button class="' + (ui.slot === s ? 'on' : '') + '" style="--sc:' + SCOL[s] + '" data-act="slot" data-id="' + s + '">' + cap(s) + ' <small>' + (sl ? 'logged' : 'open') + '</small></button>'; }).join('') + '<button class="' + (ui.slot === 'total' ? 'on' : '') + '" style="--sc:#8a929e" data-act="slot" data-id="total">Day total <small>' + (res.days[d] ? sg(dayXp(d)) + ' XP' : '-') + '</small></button></div>';
   if (ui.slot === 'total') return h + vTotal(d, day, v, r);
   h += '<div class="slotpane" style="--sc:' + SCOL[ui.slot] + '"><div class="slotlabel">' + cap(ui.slot) + ' check-in &middot; ' + dlabel(d) + '</div>';
-  h += '<p class="hint" style="margin:0 0 10px">Things like study, hydration, exercise and household can be entered in any check-in. They add up in the Day total tab.</p>';
   if (ui.slot === 'morning') {
-    const modes = ['normal', 'sick', 'travel', 'holiday'];
-    h += '<div class="card" style="margin-bottom:12px"><h2>Day settings &middot; ' + dlabel(d) + '</h2><div class="row">' +
-      '<label class="mu">Mode</label><select data-in="mode">' + modes.map(m => opt(m, cap(m), day.mode || 'normal')).join('') + '</select>' +
-      '<label class="mu">Priority</label><select data-in="priority">' + priorityOptions(day.priority) + '</select>' +
-      '<label class="mu"><input type="checkbox" data-in="token"' + (day.token ? ' checked' : '') + (!day.token && res.tokens.left === 0 ? ' disabled' : '') + '> use a life token (' + res.tokens.left + ' left)</label></div>' +
-      '<div class="row" style="margin-top:8px"><span class="mu">Set mode for the next</span><input type="number" id="mrN" value="3" min="1" max="60" style="width:64px"><span class="mu">days:</span><select id="mrM"><option>sick</option><option>travel</option><option>holiday</option><option>normal</option></select><button class="btn sm" data-act="modeRange">Apply</button></div>' +
-      '<p class="hint">Sick, travel, holiday and token days: no penalties, targets relaxed, form frozen.</p></div>';
+    const modes = ['normal', 'sick', 'travel', 'holiday'], md = day.mode || 'normal';
+    h += '<details class="card ds"' + (md !== 'normal' || day.token ? ' open' : '') + '><summary>Day settings &middot; ' + cap(md) + (day.token ? ', life token' : '') + '</summary><div class="row" style="margin-top:8px">' +
+      '<label class="mu">Mode</label><select data-in="mode">' + modes.map(m => opt(m, cap(m), md)).join('') + '</select>' +
+      '<label class="mu"><input type="checkbox" data-in="token"' + (day.token ? ' checked' : '') + (!day.token && res.tokens.left === 0 ? ' disabled' : '') + '> life token (' + res.tokens.left + ' left)</label></div>' +
+      '<div class="row" style="margin-top:8px"><span class="mu">Set mode for the next</span><input type="number" id="mrN" value="3" min="1" max="60" style="width:64px"><span class="mu">days:</span><select id="mrM"><option>sick</option><option>travel</option><option>holiday</option><option>normal</option></select><button class="btn sm" data-act="modeRange">Apply</button></div></details>';
   }
-  const inds = cfg().indicators.filter(i => !i.off && slotsOf(i).includes(ui.slot)), groups = {};
+  const inds = cfg().indicators.filter(i => !i.off && shownIn(i, ui.slot)), groups = {};
   inds.forEach(i => (groups[i.skill] = groups[i.skill] || []).push(i));
+  // activity buttons (night): fitness / study / career, each with a dropdown
+  const catOf = {}; if (ui.slot === 'night') ACT_CATS.forEach(c => c.skills.forEach(sk => { catOf[sk] = c; }));
+  const catMembers = {}; inds.forEach(i => { const c = catOf[i.skill]; if (c && i.kind !== 'binary') (catMembers[c.id] = catMembers[c.id] || []).push(i); });
+  const acts = ACT_CATS.filter(c => catMembers[c.id]).map(c => actCard(c, catMembers[c.id], v, day)).join('');
+  if (acts) h += '<div class="grp"><h3>Activities</h3>' + acts + '</div>';
   const order = skillsByGroup().flatMap(x => x.skills.map(s => s.id)).concat(Object.keys(groups).filter(k => !skillOf(k)));
   for (const sid of order) {
     if (!groups[sid]) continue; const sk = skillOf(sid) || { name: 'Other' };
-    h += '<div class="grp"><h3 style="color:' + scol(sid) + '">' + esc(sk.name) + ' <small>' + esc((skillOf(sid) || {}).group || '') + '</small></h3>' + groups[sid].map(ind => {
+    const list = groups[sid].filter(i => !(catOf[sid] && i.kind !== 'binary'));
+    if (!list.length) continue;
+    const bins = list.filter(i => i.kind === 'binary' && !i.invert && i.defaultVal !== true), rest = list.filter(i => !bins.includes(i));
+    let inner = bins.length ? binRow(bins, v) : '';
+    inner += rest.map(ind => {
       const o = r && r.inds[ind.id], logged = day.slots && slotsOf(ind).some(s => day.slots[s]);
       const badge = o && logged ? (Math.abs(o.xp) < 0.5 ? '<span class="xp z">0</span>' : '<span class="xp ' + (o.xp > 0 ? 'p' : 'n') + '" title="' + esc(o.note) + '">' + sg(o.xp) + '</span>') : '';
-      const wk = res.weekly.find(w => w.id === ind.id);
-      return '<div class="ind" style="--gc:' + scol(ind.skill) + '"><div class="il"><b>' + esc(ind.name) + '</b>' + (ind.hint ? '<small>' + esc(ind.hint) + '</small>' : '') + (wk ? '<small>This week: ' + wk.count + ' / ' + wk.goal + '</small>' : '') + (ind.abs ? '<small>+' + ind.unitXp + ' XP each (bonus)</small>' : '') + (slotsOf(ind).length > 1 ? '<small class="any">any check-in: ' + slotsOf(ind).map(s => s.slice(0, 3)).join(' / ') + '</small>' : '') + '</div><div class="ctl">' + control(ind, v, day) + badge + '</div></div>';
-    }).join('') + '</div>';
+      return '<div class="ind" style="--gc:' + scol(ind.skill) + '"><div class="il"><b title="' + esc(ind.hint || '') + '">' + esc(ind.name) + '</b></div><div class="ctl">' + control(ind, v, day) + badge + '</div></div>';
+    }).join('');
+    h += '<div class="grp"><h3 style="color:' + scol(sid) + '">' + esc(sk.name) + '</h3>' + inner + '</div>';
   }
-  if (!inds.length) h += '<p class="mu">No indicators in this slot. Add some in Settings.</p>';
-  if (ui.slot === 'night') h += '<div class="grp"><h3>Day note</h3><div class="ind"><div class="ctl" style="flex-basis:100%"><div class="full"><textarea data-in="note" placeholder="Optional: anything worth remembering about today.">' + esc(day.note || '') + '</textarea></div></div></div></div>';
+  if (!inds.length) h += '<p class="mu">Nothing to log in this check-in.</p>';
+  if (ui.slot === 'night') h += '<div class="grp"><h3>Day note</h3><div class="ind"><div class="ctl" style="flex-basis:100%"><div class="full"><textarea data-in="note" placeholder="Optional note about today.">' + esc(day.note || '') + '</textarea></div></div></div></div>';
   h += '</div>';
   const logged = day.slots && day.slots[ui.slot];
-  h += '<div class="row savebar" style="margin-top:10px"><button class="btn pri" data-act="saveSlot">' + (logged ? 'Update ' : 'Save ') + ui.slot + ' check-in</button>' + (logged ? '<button class="btn sm" data-act="clearSlot">Clear this check-in</button>' : '') + '<span class="mu">Logging a slot earns +' + S.slotLogXp + ' XP, even on a bad day.</span></div>';
+  h += '<div class="row savebar" style="margin-top:10px"><button class="btn pri" data-act="saveSlot">' + (logged ? 'Update ' : 'Save ') + ui.slot + ' check-in</button>' + (logged ? '<button class="btn sm" data-act="clearSlot">Clear</button>' : '') + '</div>';
   return h;
 }
 
@@ -1692,11 +1742,11 @@ function vTotal(d, day, v, r) {
       const tgt = i.kind === 'bar' ? (i.targetKey ? S_()[i.targetKey] : i.target) : i.target, tot = v[i.id] != null ? Number(v[i.id]) : 0, o = r && r.inds[i.id];
       return '<tr style="--gc:' + scol(i.skill) + '"><td class="nm2">' + esc(i.name) + '</td>' + E.SLOTS.map(s => slotsOf(i).includes(s) ? '<td><input type="number" step="' + (i.step || (i.kind === 'effort' ? 5 : 1)) + '" data-in="part" data-id="' + i.id + '" data-slot="' + s + '" value="' + (partVal(day, i, s) == null ? '' : partVal(day, i, s)) + '"></td>' : '<td class="mu">-</td>').join('') +
         '<td><b class="' + (tot >= tgt ? 'up' : '') + '">' + fmt(tot) + '</b> <small>/ ' + fmt(tgt) + ' ' + esc(i.unit || (i.kind === 'effort' ? 'min' : '')) + '</small></td><td class="' + (o && o.xp < 0 ? 'dn' : 'up') + '">' + (o ? sg(o.xp) : '-') + '</td></tr>';
-    }).join('') + '</tbody></table></div><p class="hint">Fill in each part of the day. The total is what counts. Cells for a slot you have not reached yet stay empty.</p></div>';
+    }).join('') + '</tbody></table></div></div>';
   const rest = cfg().indicators.filter(i => !i.off && !isPart(i) && !['macros'].includes(i.kind) || (i.kind === 'macros' && !i.off));
   h += '<div class="card"><h2>Everything today</h2><div class="scroll"><table class="tt"><thead><tr><th>Indicator</th><th>Value</th><th>XP</th><th></th></tr></thead><tbody>' +
     rest.filter(i => !isPart(i)).map(i => { const o = r && r.inds[i.id]; return '<tr style="--gc:' + scol(i.skill) + '"><td class="nm2">' + esc(i.name) + ' <small>' + esc(slotsOf(i).map(s => s.slice(0, 3)).join('/')) + '</small></td><td>' + esc(valText(i, v, r)) + '</td><td class="' + (o && o.xp < 0 ? 'dn' : 'up') + '">' + (o && Math.abs(o.xp) >= 0.5 ? sg(o.xp) : '-') + '</td><td><button class="btn sm" data-act="openSlot" data-id="' + i.slot + '">Edit</button></td></tr>'; }).join('') + '</tbody></table></div></div>';
-  h += '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="saveDay">Save all check-ins for this day</button><span class="mu">Marks every open check-in as logged (open yes/no habits count as not done, except "smoked").</span></div>';
+  h += '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="saveDay">Save all check-ins for this day</button></div>';
   return h;
 }
 
@@ -1720,14 +1770,14 @@ function vTodos() {
     '<label>Size</label><select id="tdSize">' + TODO_SIZES.map(s => opt(s.id, s.label + ', +' + s.xp + ' XP', 'normal')).join('') + '</select>' +
     '<label>Due (optional)</label><input type="date" id="tdDue" min="' + TODAY + '">' +
     '<label>Reward (optional)</label><input type="text" id="tdReward" placeholder="A coffee out, an hour of games" maxlength="80"></div>' +
-    '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="addTodo">Add to-do</button><span class="mu">Finishing it pays the XP once. Being late costs nothing; this list is for getting things off your mind.</span></div></div>';
+    '<div class="row" style="margin-top:10px"><button class="btn pri" data-act="addTodo">Add to-do</button></div></div>';
   h += '<div class="card" style="margin-top:12px"><div class="row sp"><h2 style="margin:0">Open &middot; ' + open.length + '</h2><span class="unit">last 7 days: ' + wkDone + ' done, +' + wkXp + ' XP</span></div><div style="margin-top:10px">' + (open.length ? open.map(todoRow).join('') : '<p class="mu">Nothing open. Add whatever is on your mind.</p>') + '</div></div>';
   if (done.length) h += '<details class="card" style="margin-top:12px"' + (open.length ? '' : ' open') + '><summary>Done &middot; ' + done.length + '</summary><div style="margin-top:10px">' + done.slice(0, 25).map(todoRow).join('') + (done.length > 25 ? '<p class="hint">Showing the latest 25.</p>' : '') + '</div></details>';
   return h;
 }
 function momentumBar(d) {
   const r = res.days[d], n = r ? r.todosDone : 0, m = r ? r.momentum : 0, tiers = E.MOMENTUM || [0, 0.1, 0.18, 0.25], nxt = n < tiers.length - 1 ? tiers[n + 1] : null;
-  return '<div class="mom"><div class="momh"><b>Momentum ' + (m ? '+' + Math.round(m * 100) + '%' : 'off') + '</b><span>' + n + ' to-do' + (n === 1 ? '' : 's') + ' done ' + (d === TODAY ? 'today' : 'that day') + '</span></div><div class="momt">' + tiers.slice(1).map((x, i) => '<i class="' + (n >= i + 1 ? 'on' : '') + '"><b>' + (i + 1 === tiers.length - 1 ? (i + 1) + '+' : i + 1) + '</b>+' + Math.round(x * 100) + '%</i>').join('') + '</div><p class="hint" style="margin:6px 0 0">' + (nxt != null && d === TODAY ? 'One more to-do lifts today\'s habit XP to +' + Math.round(nxt * 100) + '%. ' : '') + 'It boosts positive habit XP of the day, never penalties or the to-do XP itself.</p></div>';
+  return '<div class="mom"><div class="momh"><b>Momentum ' + (m ? '+' + Math.round(m * 100) + '%' : 'off') + '</b><span>' + n + ' to-do' + (n === 1 ? '' : 's') + ' done ' + (d === TODAY ? 'today' : 'that day') + '</span></div><div class="momt">' + tiers.slice(1).map((x, i) => '<i class="' + (n >= i + 1 ? 'on' : '') + '"><b>' + (i + 1 === tiers.length - 1 ? (i + 1) + '+' : i + 1) + '</b>+' + Math.round(x * 100) + '%</i>').join('') + '</div></div>';
 }
 function todoCard() {
   const open = state.todos.filter(t => !t.done).sort(todoSort); if (!open.length) return '<div class="card" style="margin-top:12px">' + momentumBar(TODAY) + '<div class="row sp" style="margin-top:10px"><h2 style="margin:0">To-dos</h2><button class="btn sm" data-act="tab" data-id="todos">Add one</button></div></div>';
@@ -1766,7 +1816,6 @@ function vSkills() {
   const d = ui.date, r = res.days[d];
   let h = '';
   for (const grp of skillsByGroup()) h += '<div class="gh2" style="--gc:' + gcol(grp.g) + '">' + esc(grp.g) + '</div><div class="skgrid">' + grp.skills.map(s => skillCard(s, r)).join('') + '</div>';
-  h += '<p class="hint">The bar fills towards the next level. Form = your last ~2 weeks of performance, scaling XP between 0.7x and 1.3x. "Last week" is XP earned vs the perfect-week potential; 60%+ counts as a good week and pays a consistency bonus.</p>';
   h += '<div class="card" style="margin-top:12px"><h2>Why did I get this XP? &middot; ' + dlabel(d) + '</h2>';
   if (!r) h += '<p class="mu">Nothing recorded for this date.</p>';
   else {
@@ -2020,6 +2069,8 @@ const ACT = {
   set: t => { const day = getDay(ui.date), id = t.dataset.id; const val = t.dataset.num ? Number(t.dataset.val) : t.dataset.val; if (day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
   setc: t => { const day = getDay(ui.date), k = t.dataset.id + '_cost'; if (day.v[k] === t.dataset.val) delete day.v[k]; else day.v[k] = t.dataset.val; persist(); },
   setbool: t => { const day = getDay(ui.date), id = t.dataset.id, val = t.dataset.val === 'true'; if (id in day.v && day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
+  actopen: t => { ui.actOpen = ui.actOpen === t.dataset.id ? null : t.dataset.id; render(); },
+  allon: t => { const day = getDay(ui.date), ids = t.dataset.ids.split(','), all = ids.every(id => day.v[id] === true); ids.forEach(id => { if (all) delete day.v[id]; else day.v[id] = true; }); persist(); },
   toggle: t => { const day = getDay(ui.date), id = t.dataset.id, ind = indOf(id); const cur = id in day.v ? !!day.v[id] : ind.defaultVal === true; day.v[id] = !cur; persist(); },
   add: t => { const day = getDay(ui.date), id = t.dataset.id; const n = (E.num(day.v[id]) || 0) + Number(t.dataset.val); day.v[id] = Math.max(0, n); persist(); },
   ev: t => { const day = getDay(ui.date), id = t.dataset.id, a = Array.isArray(day.v[id]) ? day.v[id].slice() : [], i = a.indexOf(t.dataset.val); if (i >= 0) a.splice(i, 1); else a.push(t.dataset.val); day.v[id] = a; persist(); },
@@ -2154,6 +2205,7 @@ const ACT = {
   delTask: t => { const h = homeInd(); h.tasks = h.tasks.filter(k => k.id !== t.dataset.id); persist(); }
 };
 const INP = {
+  actsel: t => { ui.actSel[t.dataset.cat] = t.value; render(); },
   date: t => { if (t.value && t.value <= TODAY) { ui.date = t.value; render(); } },
   time: t => { const day = getDay(ui.date); if (t.value.trim() === '') { delete day.v[t.dataset.id]; persist(); return; } const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 10:30 or 1030.'); render(); return; } day.v[t.dataset.id] = p; persist(); },
   cfgtime: t => { const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 07:30 or 0730.'); render(); return; } S_()[t.dataset.path] = p; persist(); },

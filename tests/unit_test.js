@@ -67,13 +67,13 @@ console.log('5. tokens and modes waive penalties');
 console.log('6. treat budget and fun day');
 {
   const s = mk('2026-11-02');
-  day(s, '2026-11-02', { meal_b: 'treat' }, ['afternoon']);
-  day(s, '2026-11-03', { meal_b: 'treat' }, ['afternoon']);
-  day(s, '2026-11-04', { meal_b: 'treat' }, ['afternoon']);
+  day(s, '2026-11-02', { meal_b: 'treat' }, ['morning']);
+  day(s, '2026-11-03', { meal_b: 'treat' }, ['morning']);
+  day(s, '2026-11-04', { meal_b: 'treat' }, ['morning']);
   const r = E.compute(s, { today: '2026-11-05' });
   ok(r.days['2026-11-02'].inds.meal_b.xp === 0 && r.days['2026-11-03'].inds.meal_b.xp === 0, 'first 2 treats of the week are free');
   ok(r.days['2026-11-04'].inds.meal_b.xp < 0, '3rd treat counts against you');
-  const s2 = mk('2026-11-07'); day(s2, '2026-11-07', { meal_b: 'treat', meal_l: 'treat', meal_d: 'treat' }, ['afternoon', 'night']);   // Saturday
+  const s2 = mk('2026-11-07'); day(s2, '2026-11-07', { meal_b: 'treat', meal_l: 'treat', meal_d: 'treat' }, ['morning', 'afternoon', 'night']);   // Saturday
   const r2 = E.compute(s2, { today: '2026-11-08' });
   const o = r2.days['2026-11-07'].inds;
   ok(o.meal_b.xp === 0 && o.meal_l.xp === 0 && o.meal_d.xp === 0 && /fun-day|planned/.test(o.meal_d.note), 'Saturday: 2 fun treats plus 1 from the weekly budget are free');

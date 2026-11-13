@@ -82,7 +82,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 5;
+const REV = 6;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
 
@@ -120,7 +120,7 @@ function defaultConfig() {
     I({ id: 'stretch_ham', name: 'Hamstring stretches', skill: 'fitness', slot: 'morning', kind: 'binary' }),
     I({ id: 'walk', name: 'Walk', skill: 'fitness', slot: 'night', kind: 'effort', w: 1, unit: 'min', target: 30, everyN: 1, relax: true, def: 30, hint: 'Low-XP side goal: 30 min.' }),
     // ---- Nutrition
-    I({ id: 'meal_b', name: 'Breakfast', skill: 'nutrition', slot: 'afternoon', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
+    I({ id: 'meal_b', name: 'Breakfast', skill: 'nutrition', slot: 'morning', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'meal_l', name: 'Lunch', skill: 'nutrition', slot: 'afternoon', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'meal_d', name: 'Dinner', skill: 'nutrition', slot: 'night', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
     I({ id: 'water', name: 'Hydration', skill: 'nutrition', slot: 'night', kind: 'bar', w: 1, unit: 'ml', step: 250, targetKey: 'water', def: 2000, tap: 250 }),
@@ -217,6 +217,7 @@ function upgradeConfig(cfg) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 6) { const b = (cfg.indicators || []).find(i => i.id === 'meal_b'); if (b && b.slot === 'afternoon') b.slot = 'morning'; }
   if (from < 5 && cfg.settings) { cfg.settings.rhythm = cfg.settings.rhythm || {}; if (cfg.settings.rhythm[5] == null) cfg.settings.rhythm[5] = 'cheat'; cfg.settings.cheatFrom = cfg.settings.cheatFrom || '17:00'; }
   if (from < 4 && !(cfg.indicators || []).some(i => i.id === 'stretch_ham')) { const ni = JSON.parse(JSON.stringify(byId.stretch_ham)), at = (cfg.indicators || []).findIndex(i => i.id === 'walk'); if (at >= 0) cfg.indicators.splice(at, 0, ni); else cfg.indicators.push(ni); }
   if (from < 3) for (const i of (cfg.indicators || [])) {

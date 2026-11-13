@@ -240,3 +240,19 @@ details.card summary{cursor:pointer;color:var(--mu);margin:0}
 .momh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.momh span{color:var(--mu);font-size:12px}
 .momt{display:flex;gap:6px;margin-top:6px}.momt i{flex:1;font-style:normal;text-align:center;border:1px solid var(--line);background:#0a0c0f;color:var(--mu);padding:4px 2px;font-size:12px}
 .momt i b{display:block;font-size:11px;font-weight:400}.momt i.on{background:var(--ok);border-color:var(--ok);color:#0b1016;font-weight:600}
+
+/* check-in v2.6: compact activity panels, chip rows, collapsed day settings */
+.act{background:var(--p1);border:1px solid var(--line);border-left:3px solid var(--gc,var(--line));border-radius:2px;margin-bottom:6px}
+.act.has{border-color:var(--line2);border-left-color:var(--gc,var(--ac))}
+.actb{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:10px;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.actb b{flex:0 0 74px;font-weight:600}
+.actb .unit{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.car{width:7px;height:7px;border-right:2px solid var(--mu);border-bottom:2px solid var(--mu);transform:rotate(45deg);margin:0 4px 3px 0;transition:transform .15s}
+.act.open .car{transform:rotate(-135deg);margin-bottom:-3px}
+.actp{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.actp select{width:100%}
+.actp .ctl{justify-content:flex-start;flex:none}
+.ind.chips .ctl{justify-content:flex-start;flex:1 1 100%}
+details.ds{margin-bottom:12px;padding:8px 12px}
+details.ds summary{margin:0}
+.ptot b{color:var(--tx,inherit)}
