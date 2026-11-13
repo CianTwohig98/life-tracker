@@ -1317,7 +1317,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = root.LifeR
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LTSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
-window.LT_BUILD="2026-11-13 16:03";
+window.LT_BUILD="2026-11-13 17:00";
 </script>
 <script>
 /* Life Tracker UI */
@@ -1843,7 +1843,8 @@ function vSettings() {
 const SYNC_KEY = 'lifetracker.v2.sync';
 const LT = window.LTSync;
 let sy = (function () { try { return JSON.parse(lsGet(SYNC_KEY) || '{}'); } catch (e) { return {}; } })();
-const syCfg = () => Object.assign({}, window.LT_SYNC || {}, { url: (sy.url || (window.LT_SYNC || {}).url || '').replace(/\/$/, ''), key: sy.key || (window.LT_SYNC || {}).key || '' });
+const cleanUrl = u => String(u || '').trim().replace(/\/(rest|auth)\/v1.*$/i, '').replace(/\/+$/, '');
+const syCfg = () => Object.assign({}, window.LT_SYNC || {}, { url: cleanUrl(sy.url || (window.LT_SYNC || {}).url), key: String(sy.key || (window.LT_SYNC || {}).key || '').trim() });
 const syncSave = () => lsSet(SYNC_KEY, JSON.stringify(sy));
 const syncSigned = () => !!(sy.session && sy.session.refresh_token && syCfg().url && syCfg().key);
 let lastH = null, syncing = false, again = false, pushTimer = null, syncStatus = { s: 'idle', at: null, msg: '' };
