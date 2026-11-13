@@ -1,0 +1,6 @@
+// Draws flat icons (a level bar) with headless Chrome and writes PNGs into site/.
+const p = require('puppeteer-core'); const fs = require('fs');
+const svg = s => `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 512 512"><rect width="512" height="512" fill="#0e1013"/><rect x="96" y="96" width="320" height="320" fill="#14171c" stroke="#3a414b" stroke-width="8"/><rect x="136" y="300" width="64" height="76" fill="#6fae7e"/><rect x="224" y="244" width="64" height="132" fill="#6fae7e"/><rect x="312" y="172" width="64" height="204" fill="#7aa7d9"/><rect x="136" y="136" width="240" height="16" fill="#3a414b"/><rect x="136" y="136" width="150" height="16" fill="#7aa7d9"/></svg>`;
+(async () => { fs.mkdirSync(__dirname + '/../docs', { recursive: true }); const b = await p.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'], headless: 'new' }); const pg = await b.newPage();
+  for (const s of [180, 192, 512]) { await pg.setViewport({ width: s, height: s }); await pg.setContent('<body style="margin:0">' + svg(s) + '</body>'); await pg.screenshot({ path: __dirname + '/../docs/icon-' + s + '.png' }); }
+  await b.close(); console.log('icons ok'); })();

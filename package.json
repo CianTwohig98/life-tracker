@@ -1,0 +1,12 @@
+{
+  "name": "life-tracker",
+  "version": "2.5.0",
+  "private": true,
+  "description": "A gamified life tracker: needs bars, skill XP and levels, quests, to-dos and a daily plan. Offline-first PWA with optional cloud sync.",
+  "scripts": {
+    "build": "node src/build.js",
+    "test": "node tests/unit_test.js && node tests/sync_test.js",
+    "sim": "node tests/sim_test.js 90"
+  },
+  "license": "MIT"
+}
