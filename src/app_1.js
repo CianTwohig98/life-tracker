@@ -269,8 +269,7 @@ function partControl(ind, day) {
   const taps = ind.kind === 'bar' ? (ind.tap ? [-ind.tap, ind.tap, ind.tap * 2] : []) : [15, 30, 45, 60, 90];
   const tot = day.v && day.v[id] != null ? Number(day.v[id]) : 0;
   return taps.map(n => '<button class="chp ' + (n > 0 ? 'on' : '') + '" data-act="addpart" ' + a + ' data-val="' + n + '">' + (n > 0 ? '+' : '') + n + '</button>').join('') +
-    '<input type="number" step="' + (ind.step || (ind.kind === 'effort' ? 5 : 1)) + '" ' + a + ' data-in="part" value="' + (cur == null ? '' : cur) + '"><span class="unit">' + esc(u) + '</span>' +
-    '<span class="unit ptot">today <b>' + fmt(tot) + '</b> / ' + fmt(tgt) + '</span>';
+    '<input type="number" step="' + (ind.step || (ind.kind === 'effort' ? 5 : 1)) + '" ' + a + ' data-in="parttotal" value="' + (tot > 0 || cur != null ? tot : '') + '"><span class="unit ptot">' + esc(u) + ' today' + (tot - (cur || 0) > 0 ? ' (' + fmt(tot - (cur || 0)) + ' earlier)' : '') + ', target ' + fmt(tgt) + '</span>';
 }
 function control(ind, v, day) {
   const id = ind.id, x = v[id], a = 'data-id="' + id + '"';
@@ -327,7 +326,8 @@ function actCard(cat, members, v, day) {
   const open = ui.actOpen === cat.id;
   const sel = members.find(i => i.id === ui.actSel[cat.id]) || members.find(i => actValue(i, v)) || members[0];
   const done = members.map(i => { const t = actValue(i, v); return t ? shortName(i) + ' ' + t : ''; }).filter(Boolean);
-  let h = '<div class="act' + (open ? ' open' : '') + (done.length ? ' has' : '') + '" style="--gc:' + scol(members[0].skill) + '"><button class="actb" data-act="actopen" data-id="' + cat.id + '"><b>' + esc(cat.label) + '</b><span class="unit">' + (done.length ? esc(done.join(', ')) : 'nothing yet') + '</span><i class="car"></i></button>';
+  const rd = res.days[ui.date], axp = members.reduce((a, i) => { const o = rd && rd.inds[i.id]; return a + (o && actValue(i, v) ? o.xp : 0); }, 0);
+  let h = '<div class="act' + (open ? ' open' : '') + (done.length ? ' has' : '') + '" style="--gc:' + scol(members[0].skill) + '"><button class="actb" data-act="actopen" data-id="' + cat.id + '"><b>' + esc(cat.label) + '</b><span class="unit">' + (done.length ? esc(done.join(', ')) : 'nothing yet') + '</span>' + (done.length && Math.abs(axp) >= 0.5 ? '<span class="xp ' + (axp > 0 ? 'p' : 'n') + '">' + sg(axp) + '</span>' : '') + '<i class="car"></i></button>';
   if (open) {
     const wk = res.weekly.find(w => w.id === sel.id);
     h += '<div class="actp">' + (members.length > 1 ? '<select data-in="actsel" data-cat="' + cat.id + '">' + members.map(i => opt(i.id, shortName(i), sel.id)).join('') + '</select>' : '<b>' + esc(shortName(sel)) + '</b>') +

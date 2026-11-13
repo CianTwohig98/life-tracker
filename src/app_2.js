@@ -220,6 +220,7 @@ const INP = {
   date: t => { if (t.value && t.value <= TODAY) { ui.date = t.value; render(); } },
   time: t => { const day = getDay(ui.date); if (t.value.trim() === '') { delete day.v[t.dataset.id]; persist(); return; } const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 10:30 or 1030.'); render(); return; } day.v[t.dataset.id] = p; persist(); },
   cfgtime: t => { const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 07:30 or 0730.'); render(); return; } S_()[t.dataset.path] = p; persist(); },
+  parttotal: t => { const day = getDay(ui.date), ind = indOf(t.dataset.id); if (!ind) return; const slot = t.dataset.slot, cur = partVal(day, ind, slot) || 0, tot = day.v[ind.id] != null ? Number(day.v[ind.id]) : 0, other = Math.max(0, tot - cur); setPart(day, ind, slot, t.value === '' ? null : Math.max(0, Number(t.value) - other)); persist(); },
   part: t => { const day = getDay(ui.date), ind = indOf(t.dataset.id); if (!ind) return; setPart(day, ind, t.dataset.slot, t.value === '' ? null : Number(t.value)); persist(); },
   num: t => { const day = getDay(ui.date); if (t.value === '') delete day.v[t.dataset.id]; else day.v[t.dataset.id] = Number(t.value); persist(); },
   str: t => { const day = getDay(ui.date); if (!t.value) delete day.v[t.dataset.id]; else day.v[t.dataset.id] = t.value; persist(); },
