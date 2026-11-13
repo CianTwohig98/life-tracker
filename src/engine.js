@@ -49,6 +49,7 @@ const WORKOUT_TYPES = [
   { id: 'gym', label: 'Gym', loadLabel: 'Total volume (kg lifted), optional' },
   { id: 'swim', label: 'Swim', loadLabel: 'Distance (m)' },
   { id: 'run', label: 'Run', loadLabel: 'Distance (km)' },
+  { id: 'physio', label: 'Physio (ACL)', loadLabel: null },
   { id: 'other', label: 'Other', loadLabel: null }
 ];
 const SOCIAL_EVENTS = [
@@ -56,6 +57,7 @@ const SOCIAL_EVENTS = [
   { id: 'family', label: 'Family dinner', fill: 30 },
   { id: 'partner', label: 'Partner time', fill: 35 },
   { id: 'call', label: 'Call a friend', fill: 12 },
+  { id: 'discord', label: 'Discord sesh', fill: 10 },
   { id: 'event', label: 'Party / event', fill: 40 }
 ];
 const GROUPS = ['Health', 'Career & upskilling', 'Lifestyle'];
@@ -82,7 +84,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 6;
+const REV = 7;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
 
@@ -117,7 +119,7 @@ function defaultConfig() {
     I({ id: 'sober', name: 'Sober sleep', skill: 'sleep', slot: 'morning', kind: 'binary', w: 1, defaultVal: true, falseScore: -0.4, funHalf: true, modifies: { id: 'sleep_dur', mult: 0.6 }, hint: 'No alcohol or substances last night. Otherwise sleep XP is reduced.' }),
     // ---- Fitness
     I({ id: 'workout', name: 'Workout', skill: 'fitness', slot: 'night', kind: 'workout', w: 4, goal: 4, target: 60, hint: 'Goal: 4 sessions of about 60 min per week. Beating your recent average earns a bonus.' }),
-    I({ id: 'stretch_ham', name: 'Hamstring stretches', skill: 'fitness', slot: 'morning', kind: 'binary' }),
+    I({ id: 'stretch_ham', name: 'Hamstring stretches', skill: 'fitness', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 5 }),
     I({ id: 'walk', name: 'Walk', skill: 'fitness', slot: 'night', kind: 'effort', w: 1, unit: 'min', target: 30, everyN: 1, relax: true, def: 30, hint: 'Low-XP side goal: 30 min.' }),
     // ---- Nutrition
     I({ id: 'meal_b', name: 'Breakfast', skill: 'nutrition', slot: 'morning', kind: 'tier', w: 1, options: MEAL, foodTreat: true, cost: true }),
@@ -126,19 +128,19 @@ function defaultConfig() {
     I({ id: 'water', name: 'Hydration', skill: 'nutrition', slot: 'night', kind: 'bar', w: 1, unit: 'ml', step: 250, targetKey: 'water', def: 2000, tap: 250 }),
     I({ id: 'macros', name: 'Estimated macros', skill: 'nutrition', slot: 'night', kind: 'macros', w: 1.5, optional: true, hint: 'kcal and protein, estimated from a description of what you ate. Bonus XP.' }),
     // ---- Supplements
-    I({ id: 'supp_multi', name: 'Multivitamin', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_d3', name: 'Vitamin D3', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_zinc', name: 'Zinc', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_creatine', name: 'Creatine 5 g', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_water', name: 'Water 0.5 L with supplements', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_protein', name: 'Protein 30 g', skill: 'supplements', slot: 'morning', kind: 'binary' }),
-    I({ id: 'supp_mag', name: 'Magnesium', skill: 'supplements', slot: 'morning', kind: 'binary' }),
+    I({ id: 'supp_multi', name: 'Multivitamin', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_d3', name: 'Vitamin D3', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_zinc', name: 'Zinc', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_creatine', name: 'Creatine 5 g', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_water', name: 'Water 0.5 L with supplements', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_protein', name: 'Protein 30 g', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
+    I({ id: 'supp_mag', name: 'Magnesium', skill: 'supplements', slot: 'morning', kind: 'binary', abs: true, optional: true, unitXp: 1 }),
     // ---- Hygiene
     I({ id: 'teeth_am', name: 'Brush teeth (morning)', skill: 'hygiene', slot: 'morning', kind: 'binary' }),
     I({ id: 'teeth_pm', name: 'Brush teeth (night)', skill: 'hygiene', slot: 'night', kind: 'binary' }),
     I({ id: 'shower', name: 'Shower', skill: 'hygiene', slot: 'morning', kind: 'binary' }),
     // ---- Wellbeing
-    I({ id: 'smoked', name: 'Smoked today', skill: 'wellbeing', slot: 'night', kind: 'binary', invert: true, w: 2, falseScore: -0.5, hint: 'Answer honestly. Not smoking earns XP, smoking costs a little.' }),
+    I({ id: 'smoked', name: 'Smoked today', skill: 'wellbeing', slot: 'night', kind: 'binary', invert: true, w: 2, falseScore: -0.5, alsoDebuff: { skill: 'fitness', xp: -5 }, hint: 'Answer honestly. Not smoking earns XP, smoking costs a little.' }),
     I({ id: 'mood', name: 'How are you feeling?', skill: 'wellbeing', slot: 'night', kind: 'rating', w: 2, noPenalty: true, hint: 'Honest answers never cost XP.' }),
     I({ id: 'weight', name: 'Weight (kg)', skill: 'wellbeing', slot: 'morning', kind: 'weight', w: 1, optional: true, unit: 'kg', step: 0.1, def: 80 }),
     // ---- Career
@@ -217,6 +219,12 @@ function upgradeConfig(cfg) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 7) {
+    for (const i of (cfg.indicators || [])) { const d = byId[i.id]; if (d && d.abs && d.kind === 'binary') { i.abs = true; i.optional = true; i.unitXp = d.unitXp; } }
+    const sm = (cfg.indicators || []).find(i => i.id === 'smoked'); if (sm && !sm.alsoDebuff) sm.alsoDebuff = { skill: 'fitness', xp: -5 };
+    const so = (cfg.indicators || []).find(i => i.id === 'social' && i.kind === 'need');
+    if (so && Array.isArray(so.events) && !so.events.some(e => e.id === 'discord')) { const at = so.events.findIndex(e => e.id === 'call'); so.events.splice(at >= 0 ? at + 1 : so.events.length, 0, { id: 'discord', label: 'Discord sesh', fill: 10 }); }
+  }
   if (from < 6) { const b = (cfg.indicators || []).find(i => i.id === 'meal_b'); if (b && b.slot === 'afternoon') b.slot = 'morning'; }
   if (from < 5 && cfg.settings) { cfg.settings.rhythm = cfg.settings.rhythm || {}; if (cfg.settings.rhythm[5] == null) cfg.settings.rhythm[5] = 'cheat'; cfg.settings.cheatFrom = cfg.settings.cheatFrom || '17:00'; }
   if (from < 4 && !(cfg.indicators || []).some(i => i.id === 'stretch_ham')) { const ni = JSON.parse(JSON.stringify(byId.stretch_ham)), at = (cfg.indicators || []).findIndex(i => i.id === 'walk'); if (at >= 0) cfg.indicators.splice(at, 0, ni); else cfg.indicators.push(ni); }
@@ -268,6 +276,7 @@ const indTarget = (ind, S) => (ind.targetKey ? S[ind.targetKey] : ind.target);
 /* ---------- handlers: return { xp, state, note } ---------- */
 const H = {};
 H.binary = (ind, c) => {
+  if (ind.abs) { const on = (ind.id in c.v) && !!c.v[ind.id]; return { xp: on ? (ind.unitXp || 0) : 0, state: on ? 'ok' : 'none' }; }
   const F = c.full(ind);
   if (ind.invert) {
     if (!(ind.id in c.v)) return { xp: -c.S.assumedBad * F, state: 'blank' };
@@ -616,6 +625,10 @@ function compute(state, opts) {
     const sk = {};
     for (const id of skillIds) sk[id] = { pos: 0, neg: 0, flat: 0 };
     for (const ind of inds) { const o = out[ind.id]; if (!sk[o.skill]) continue; if (o.xp > 0) sk[o.skill].pos += o.xp; else sk[o.skill].neg += o.xp; }
+    for (const ind of inds) {   // side effects on another skill (smoking dents fitness a little)
+      const a = ind.alsoDebuff, o = out[ind.id]; if (!a || !o || o.state !== 'miss' || waive || !sk[a.skill]) continue;
+      sk[a.skill].neg += a.xp; o.also = { skill: a.skill, xp: a.xp }; o.note += (o.note ? ', ' : '') + a.xp + ' ' + a.skill;
+    }
     if (priority && sk[priority.skill]) sk[priority.skill].pos += priority.bonus;
     if (sk.awareness) {
       let a = 0;

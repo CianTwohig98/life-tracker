@@ -228,7 +228,7 @@ console.log('17. supplements are separate indicators and the awareness skill is 
   const s = mk('2026-11-03'); const d = '2026-11-03';
   day(s, d, { supp_multi: true, supp_d3: true, supp_zinc: false, supp_creatine: true, supp_water: true }, ['morning']);
   const r = E.compute(s, { today: '2026-11-04' });
-  ok(r.days[d].inds.supp_multi.xp > 0 && r.days[d].inds.supp_zinc.xp < 0, 'ticked = XP, missed = small penalty');
+  ok(near(r.days[d].inds.supp_multi.xp, 1) && r.days[d].inds.supp_zinc.xp === 0, 'ticked supplement = +1 XP, a missed one costs nothing');
   ok(near(r.days[d].skills.awareness.pos, 12), 'one logged slot (+20) minus two unlogged slots (-4 each) = ' + r.days[d].skills.awareness.pos.toFixed(0) + ' Self-awareness XP');
   ok(s.config.indicators.filter(i => i.skill === 'supplements').length === 7, 'seven supplement indicators');
 }
@@ -351,5 +351,27 @@ console.log('24. cheat evening (Friday from 17:00)');
   const mon = '2026-11-16', s3 = mk('2026-11-02'); s3.logs[mon] = { v: {}, slots: {} }; const rm = E.recommend(s3, E.compute(s3, { today: mon }), mon, 17 * 60 + 30);
   ok(rm.schedule.some(b => b.kind === 'work') && !rm.notes.some(n => /Cheat/.test(n.text)), 'a normal Monday at 17:30 still schedules work');
 }
+
+console.log('25. small flat rewards, smoking dents fitness, discord, physio');
+{
+  const s = mk('2026-11-03'); const d = '2026-11-03';
+  day(s, d, { stretch_ham: true, supp_multi: true, supp_d3: true, smoked: true }, ['morning', 'afternoon', 'night']);
+  const r = E.compute(s, { today: '2026-11-04' }), o = r.days[d].inds;
+  ok(near(o.stretch_ham.xp, 5), 'hamstring stretches = +5 XP');
+  ok(near(o.supp_multi.xp + o.supp_d3.xp, 2), 'each supplement = +1 XP');
+  ok(o.smoked.xp < 0 && o.smoked.also && o.smoked.also.skill === 'fitness' && o.smoked.also.xp === -5, 'smoking keeps its wellbeing cost and adds a small fitness debuff');
+  ok(r.days[d].skills.fitness.neg <= -5, 'fitness skill shows the debuff (' + r.days[d].skills.fitness.neg.toFixed(1) + ')');
+  const s2 = mk('2026-11-03'); day(s2, d, { smoked: false }, ['morning', 'afternoon', 'night']);
+  const r2 = E.compute(s2, { today: '2026-11-04' }); ok(!r2.days[d].inds.smoked.also && r2.days[d].skills.fitness.neg > -5, 'no debuff when you did not smoke');
+  const s3 = mk('2026-11-03'); day(s3, d, { smoked: true }, ['morning', 'afternoon', 'night'], { mode: 'sick' });
+  const r3 = E.compute(s3, { today: '2026-11-04' }); ok(!r3.days[d].inds.smoked.also, 'sick days waive the debuff');
+  ok(E.SOCIAL_EVENTS.some(e => e.id === 'discord' && e.fill === 10), 'Discord sesh social event, +10');
+  ok(E.WORKOUT_TYPES.some(t => t.id === 'physio'), 'physio is a workout type');
+  const old = E.defaultState('2026-11-03').config; old.rev = 6;
+  for (const i of old.indicators) { if (i.id.startsWith('supp_') || i.id === 'stretch_ham') { delete i.abs; delete i.unitXp; i.optional = false; } if (i.id === 'smoked') delete i.alsoDebuff; if (i.id === 'social') i.events = i.events.filter(e => e.id !== 'discord'); }
+  E.upgradeConfig(old); const g = id => old.indicators.find(i => i.id === id);
+  ok(old.rev === E.REV && g('supp_zinc').abs && g('supp_zinc').unitXp === 1 && g('stretch_ham').unitXp === 5 && g('smoked').alsoDebuff && g('social').events.some(e => e.id === 'discord'), 'a rev 6 config upgrades to the new rewards');
+}
+
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));
 process.exit(fails ? 1 : 0);

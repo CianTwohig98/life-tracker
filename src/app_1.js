@@ -63,7 +63,7 @@ const lastSlot = i => slotsOf(i).slice().sort((a, b) => E.SLOTS.indexOf(a) - E.S
 const shownIn = (i, slot) => slotsOf(i).includes(slot) && lastSlot(i) === slot;
 const SHORT = { supp_multi: 'Multivitamin', supp_d3: 'Vitamin D3', supp_zinc: 'Zinc', supp_creatine: 'Creatine', supp_water: 'Water 0.5 L', supp_protein: 'Protein 30 g', supp_mag: 'Magnesium', teeth_am: 'Teeth', teeth_pm: 'Teeth', shower: 'Shower', skincare: 'Skincare', sunscreen: 'Sunscreen', stretch_ham: 'Hamstring stretch', job_time: 'Job / PhD', study_de: 'German', study_or: 'Operations Research', reading: 'Reading', roles_found: 'Roles found', apps_sent: 'Applications sent', org_browsed: 'Browsed an organisation', uni_browsed: 'Browsed a university', coffee_chat: 'Coffee chat', outreach: 'Reached out', workout: 'Workout', walk: 'Walk' };
 const shortName = i => SHORT[i.id] || i.name;
-const ACT_CATS = [{ id: 'fitness', label: 'Fitness', skills: ['fitness'] }, { id: 'study', label: 'Study', skills: ['german', 'or', 'reading'] }, { id: 'career', label: 'Career', skills: ['career'] }];
+const ACT_CATS = [{ id: 'career', label: 'Career', skills: ['career'] }, { id: 'study', label: 'Study', skills: ['german', 'or'] }, { id: 'fitness', label: 'Fitness', skills: ['fitness'] }, { id: 'reading', label: 'Reading', skills: ['reading'], lastOnly: true }];
 function partVal(day, ind, slot) {
   const p = day.parts && day.parts[ind.id];
   if (p && Object.keys(p).length) return p[slot] == null ? null : p[slot];
@@ -337,7 +337,7 @@ function actCard(cat, members, v, day) {
 }
 function binRow(list, v) {
   const on = i => (i.id in v) && !!v[i.id];
-  return '<div class="ind chips"><div class="ctl">' + list.map(i => '<button class="chp ' + (on(i) ? 'on' : '') + '" data-act="toggle" data-id="' + i.id + '">' + esc(shortName(i)) + '</button>').join('') +
+  return '<div class="ind chips"><div class="ctl">' + list.map(i => '<button class="chp ' + (on(i) ? 'on' : '') + '" data-act="toggle" data-id="' + i.id + '">' + esc(shortName(i)) + (i.abs && i.unitXp ? ' <small>+' + i.unitXp + '</small>' : '') + '</button>').join('') +
     (list.length > 3 ? '<button class="chp" data-act="allon" data-ids="' + list.map(i => i.id).join(',') + '">' + (list.every(on) ? 'None' : 'All') + '</button>' : '') + '</div></div>';
 }
 function vCheckin() {
@@ -358,10 +358,11 @@ function vCheckin() {
   const inds = cfg().indicators.filter(i => !i.off && shownIn(i, ui.slot)), groups = {};
   inds.forEach(i => (groups[i.skill] = groups[i.skill] || []).push(i));
   // activity buttons (night): fitness / study / career, each with a dropdown
-  const catOf = {}; if (ui.slot === 'night') ACT_CATS.forEach(c => c.skills.forEach(sk => { catOf[sk] = c; }));
-  const catMembers = {}; inds.forEach(i => { const c = catOf[i.skill]; if (c && i.kind !== 'binary') (catMembers[c.id] = catMembers[c.id] || []).push(i); });
+  const catOf = {}; ACT_CATS.forEach(c => c.skills.forEach(sk => { catOf[sk] = c; }));
+  const catMembers = {}; cfg().indicators.forEach(i => { const c = catOf[i.skill]; if (c && !i.off && i.kind !== 'binary' && slotsOf(i).includes(ui.slot) && (!c.lastOnly || lastSlot(i) === ui.slot)) (catMembers[c.id] = catMembers[c.id] || []).push(i); });
   const acts = ACT_CATS.filter(c => catMembers[c.id]).map(c => actCard(c, catMembers[c.id], v, day)).join('');
-  if (acts) h += '<div class="grp"><h3>Activities</h3>' + acts + '</div>';
+  const actsHtml = acts ? '<div class="grp"><h3>Work and activities</h3>' + acts + '</div>' : '';
+  if (ui.slot !== 'morning') h += actsHtml;
   const order = skillsByGroup().flatMap(x => x.skills.map(s => s.id)).concat(Object.keys(groups).filter(k => !skillOf(k)));
   for (const sid of order) {
     if (!groups[sid]) continue; const sk = skillOf(sid) || { name: 'Other' };
@@ -376,6 +377,7 @@ function vCheckin() {
     }).join('');
     h += '<div class="grp"><h3 style="color:' + scol(sid) + '">' + esc(sk.name) + '</h3>' + inner + '</div>';
   }
+  if (ui.slot === 'morning') h += actsHtml;
   if (!inds.length) h += '<p class="mu">Nothing to log in this check-in.</p>';
   if (ui.slot === 'night') h += '<div class="grp"><h3>Day note</h3><div class="ind"><div class="ctl" style="flex-basis:100%"><div class="full"><textarea data-in="note" placeholder="Optional note about today.">' + esc(day.note || '') + '</textarea></div></div></div></div>';
   h += '</div>';
