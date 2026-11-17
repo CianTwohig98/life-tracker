@@ -373,5 +373,20 @@ console.log('25. small flat rewards, smoking dents fitness, discord, physio');
   ok(old.rev === E.REV && g('supp_zinc').abs && g('supp_zinc').unitXp === 1 && g('stretch_ham').unitXp === 5 && g('smoked').alsoDebuff && g('social').events.some(e => e.id === 'discord'), 'a rev 6 config upgrades to the new rewards');
 }
 
+console.log('26. needs bars are fed by what you log');
+{
+  const s = mk('2026-11-03'), d = '2026-11-03';
+  const bar = (r, n) => r.bars.find(b => b.name === n);
+  day(s, d, { walk: 15 }, ['morning']); let r = E.compute(s, { today: d, viewDate: d });
+  ok(bar(r, 'Movement').any && bar(r, 'Movement').pct === 50, 'a 15 minute walk fills Movement to 50% (' + bar(r, 'Movement').pct + ')');
+  const s2 = mk('2026-11-03'); day(s2, d, { workout: { type: 'physio', min: 60 } }, ['morning']); r = E.compute(s2, { today: d, viewDate: d });
+  ok(bar(r, 'Movement').pct === 100, 'a 60 minute workout fills Movement to 100%, a walk is not required');
+  const s3 = mk('2026-11-03'); day(s3, d, { water: 1250 }, ['night']); r = E.compute(s3, { today: d, viewDate: d });
+  ok(bar(r, 'Hydration').pct === 50, 'water 1250 of 2500 ml = 50%');
+  const s4 = mk('2026-11-03'); r = E.compute(s4, { today: d, viewDate: d }); ok(!bar(r, 'Movement').any, 'nothing logged: the bar says so');
+  const old = E.defaultState(d).config; old.rev = 7; const mv = old.bars.find(b => b.id === 'b_move'); mv.src = ['walk']; delete mv.mode;
+  E.upgradeConfig(old); ok(old.bars.find(b => b.id === 'b_move').src.join() === 'walk,workout', 'a rev 7 config gets the new Movement sources');
+}
+
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));
 process.exit(fails ? 1 : 0);

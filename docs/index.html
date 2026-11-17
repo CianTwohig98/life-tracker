@@ -274,6 +274,24 @@ details.ds summary{margin:0}
 .tdadd{margin-top:10px}.row.nw{flex-wrap:nowrap}.row.nw input{flex:1;min-width:0}
 .tdopt{margin-top:6px}.tdopt summary{margin:0}.tdopt .fld{margin-top:8px}
 
+/* skills overview: one sorted bar chart, tap a row to open its detail */
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 10px;font-size:11px;color:var(--mu)}
+.lg i{display:inline-block;width:8px;height:8px;margin-right:5px}
+.skr{background:var(--p1);border:1px solid var(--line);border-left:3px solid var(--gc);margin-bottom:4px}
+.skrow{display:grid;grid-template-columns:minmax(96px,34%) 1fr 52px;gap:10px;align-items:center;width:100%;padding:9px 10px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.skrow .skn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skbar{height:10px;background:#0a0c0f;border:1px solid var(--line);overflow:hidden}
+.skbar>i{display:block;height:100%;background:var(--gc)}
+.skrow .skl{text-align:right;font-variant-numeric:tabular-nums;color:var(--mu);white-space:nowrap}
+.skr.open{border-color:var(--line2)}
+.skr.open .skrow .skl{color:var(--tx,inherit)}
+.skr .sk{border:0;border-top:1px solid var(--line);border-left:0;background:none;margin:0}
+.skr .sk .skh{display:none}
+details.card>summary{cursor:pointer}
+.skrow{grid-template-columns:minmax(112px,40%) 1fr 54px}
+.skrow .skn{font-size:13px}
+.skrow .skl{font-size:13px;font-weight:700}
+
 </style>
 </head>
 <body>
@@ -367,7 +385,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 7;
+const REV = 8;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
 
@@ -457,7 +475,7 @@ function defaultConfig() {
     { id: 'b_sleep', name: 'Sleep', src: ['sleep_dur'] },
     { id: 'b_food', name: 'Nutrition', src: ['meal_b', 'meal_l', 'meal_d'] },
     { id: 'b_water', name: 'Hydration', src: ['water'] },
-    { id: 'b_move', name: 'Movement', src: ['walk'] },
+    { id: 'b_move', name: 'Movement', src: ['walk', 'workout'], mode: 'max' },
     { id: 'b_supp', name: 'Supplements', src: suppIds },
     { id: 'b_hyg', name: 'Hygiene', src: ['teeth_am', 'teeth_pm', 'shower'] },
     { id: 'b_home', name: 'Household', src: ['home'] },
@@ -502,6 +520,7 @@ function upgradeConfig(cfg) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 8) { const mv = (cfg.bars || []).find(b => b.id === 'b_move'); if (mv && mv.src.length === 1 && mv.src[0] === 'walk') { mv.src = ['walk', 'workout']; mv.mode = 'max'; } }
   if (from < 7) {
     for (const i of (cfg.indicators || [])) { const d = byId[i.id]; if (d && d.abs && d.kind === 'binary') { i.abs = true; i.optional = true; i.unitXp = d.unitXp; } }
     const sm = (cfg.indicators || []).find(i => i.id === 'smoked'); if (sm && !sm.alsoDebuff) sm.alsoDebuff = { skill: 'fitness', xp: -5 };
@@ -1018,6 +1037,8 @@ function liveFraction(ind, v, S, needLevel) {
     case 'tier': { const o = ind.options.find(o => o.id === x); return o ? (o.bar != null ? o.bar : clamp(o.s, 0, 1)) : 0; }
     case 'binary': if (ind.invert) return (ind.id in v && !x) ? 1 : 0; return (ind.id in v ? !!x : ind.defaultVal === true) ? 1 : 0;
     case 'rating': { const n = num(x); return n == null ? 0 : n / 10; }
+    case 'effort': { const n = num(x); return n == null ? 0 : clamp(n / (ind.target || 30), 0, 1); }
+    case 'workout': { const n = x && typeof x === 'object' ? num(x.min) : null; return n == null || n <= 0 ? 0 : clamp(n / (ind.target || 60), 0, 1); }
     case 'need': case 'rooms': return (needLevel != null ? needLevel : 0) / 100;
     default: return 0;
   }
@@ -1029,7 +1050,7 @@ function barsFor(state, res, date) {
     const srcs = b.src.map(id => cfg.indicators.find(i => i.id === id)).filter(i => i && !i.off);
     if (!srcs.length) return null;
     const vals = srcs.map(i => liveFraction(i, v, cfg.settings, dr && dr.need ? dr.need[i.id] : null));
-    const pct = Math.round(100 * mean(vals));
+    const pct = Math.round(100 * (b.mode === 'max' ? Math.max.apply(null, vals) : mean(vals)));
     const any = srcs.some(i => i.kind === 'need' || i.kind === 'rooms' || (i.id in v) || (i.defaultVal === true && day.slots && day.slots[i.slot]));
     return { id: b.id, name: b.name, pct, any, kind: srcs[0].kind };
   }).filter(Boolean);
@@ -1349,7 +1370,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = root.LifeR
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LTSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
-window.LT_BUILD="2026-11-13 21:11";
+window.LT_BUILD="2026-11-17 11:18";
 </script>
 <script>
 /* Life Tracker UI */
@@ -1379,7 +1400,7 @@ const mem = {}; let storageOk = true;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { storageOk = false; return mem[k] || null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { storageOk = false; mem[k] = v; } };
 let TODAY = todayStr(), appMode = 'real', state, res;
-const ui = { actOpen: null, actSel: {}, tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
+const ui = { skOpen: null, actOpen: null, actSel: {}, tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
 (function () { const h = new Date().getHours(); ui.slot = h < 11 ? 'morning' : h < 18 ? 'afternoon' : 'night'; })();
 
 function migrate(s) {
@@ -1528,9 +1549,9 @@ function vRecs() {
 function roomsCard() {
   const home = homeInd(), r = res.days[ui.date], rd = home && r && r.rooms && r.rooms[home.id]; if (!rd) return '';
   const rows = home.rooms.map(x => ({ id: x.id, name: x.name, lv: rd.rooms[x.id] })).sort((a, b) => a.lv - b.lv);
-  return '<div class="card"><div class="row sp"><h2 style="margin:0">Household &middot; ' + Math.round(rd.total) + '%</h2><span class="unit">weakest room: ' + esc(rows[0].name) + '</span></div><div style="margin-top:12px">' +
+  return '<details class="card"><summary>Rooms &middot; weakest: ' + esc(rows[0].name) + ' ' + Math.round(rows[0].lv) + '%</summary><div style="margin-top:12px">' +
     rows.map((x, i) => '<div class="rm' + (i === 0 && x.lv < 50 ? ' low' : '') + '"><span class="nm">' + esc(x.name) + '</span><div class="bar thin ' + barCls(x.lv) + '"><i style="width:' + Math.round(x.lv) + '%"></i></div><span class="unit">' + Math.round(x.lv) + '%</span></div>').join('') + '</div>' +
-    '</div>';
+    '</details>';
 }
 function vDashboard() {
   const d = ui.date, r = res.days[d], day = state.logs[d] || {};
@@ -1546,20 +1567,14 @@ function vDashboard() {
   const modeBadge = r && r.mode !== 'normal' ? '<span class="badge mode">' + esc(r.mode) + ' mode</span>' : '';
   const nextSlot = E.SLOTS.find(s => !(r && r.slots[s].logged)) || null;
   h += '<div class="grid g2">';
-  h += '<div class="card"><h2>Needs</h2>' + res.bars.map(b => '<div class="need"><div class="nh"><span>' + esc(b.name) + '</span><b>' + (b.any ? b.pct + '%' : '-') + '</b></div><div class="bar ' + barCls(b.pct) + (b.any ? '' : ' empty') + '"><i style="width:' + (b.any ? b.pct : 0) + '%"></i></div></div>').join('') + '</div>';
+  h += '<div class="card"><h2>Needs</h2>' + res.bars.map(b => '<div class="need"><div class="nh"><span>' + esc(b.name) + '</span><span class="row" style="gap:8px">' + (b.id === 'b_water' && d === TODAY ? '<button class="btn sm" data-act="quickWater">+250 ml</button>' : '') + (b.any ? '<b>' + b.pct + '%</b>' : '<small class="mu">not logged</small>') + '</span></div><div class="bar ' + barCls(b.pct) + (b.any ? '' : ' empty') + '"><i style="width:' + (b.any ? b.pct : 0) + '%"></i></div></div>').join('') + '</div>';
   h += '<div class="card"><div class="row sp"><h2 style="margin:0">' + (d === TODAY ? 'Today' : dlabel(d)) + '</h2><div class="row">' + dayBadge + modeBadge + slotDots(d) + '</div></div>';
   h += '<div class="big ' + (dayXp(d) >= 0 ? 'pos' : 'neg') + '">' + sg(dayXp(d)) + ' <small>XP</small></div>';
   h += '<div class="row" style="margin:8px 0 12px"><label class="mu">Priority today</label><select data-in="priority">' + priorityOptions(day.priority) + '</select></div>';
-  h += '<button class="btn pri" data-act="openSlot" data-id="' + (nextSlot || 'night') + '">' + (nextSlot ? 'Check in: ' + nextSlot : 'All check-ins done, review night') + '</button></div>';
+  h += '</div>';
   h += '</div>';
   h += '<div class="grid g2" style="margin-top:12px">' + roomsCard() + '<div class="card"><h2>Weekly goals</h2>' + (res.weekly.map(w => { const p = Math.min(100, Math.round(w.count / w.goal * 100)); return '<div class="goal"><div class="nh"><span>' + esc(w.name) + '</span><b>' + w.count + ' / ' + w.goal + '</b></div><div class="bar thin ' + (p >= 100 ? 'hi' : p >= 50 ? 'mid' : 'lo') + '"><i style="width:' + p + '%"></i></div></div>'; }).join('') || '<p class="mu">No weekly goals set.</p>') + '</div></div>';
-  for (const grp of skillsByGroup()) {
-    h += '<div class="sec" style="border-bottom-color:' + gcol(grp.g) + '"><h2 style="color:' + gcol(grp.g) + '">' + esc(grp.g) + '</h2><span class="unit">' + grp.skills.length + ' skills</span></div><div class="grid g3">' + grp.skills.map(s => {
-      const k = res.skills[s.id]; if (!k) return ''; const a = r ? r.skills[s.id] : null; const dx = a ? a.gain - a.loss : 0;
-      return '<div class="card skill" style="--gc:' + gcol(grp.g) + '"><div class="sh"><div><b>' + esc(s.name) + '</b><small class="' + (k.form >= 1 ? 'up' : 'dn') + '">form ' + k.form.toFixed(2) + 'x</small></div><div class="lv">' + k.level + '</div></div><div class="bar thin sk"><i style="width:' + Math.round(k.pct * 100) + '%"></i></div><div class="sf"><span>' + fmt(k.into) + ' / ' + fmt(k.need) + ' XP</span><span class="' + (dx >= 0 ? 'up' : 'dn') + '">' + sg(dx) + (d === TODAY ? ' today' : '') + '</span></div></div>';
-    }).join('') + '</div>';
-  }
-  h += '<div class="grid g2" style="margin-top:12px"><div class="card"><h2>Milestones in progress</h2>' + questList(true) + '</div>';
+  h += '<div class="grid g2" style="margin-top:12px">';
   const days30 = lastDays(30);
   h += '<div class="card"><h2>XP per day, last 30 days</h2>' + svgBars(days30.map(x => dayXp(x))) + '</div>';
   const mk = id => { const pts = []; days30.forEach((x, i) => { const v = state.logs[x] && state.logs[x].v ? E.num(state.logs[x].v[id]) : null; pts.push([i, v]); }); return pts; };
@@ -1832,11 +1847,15 @@ function skillCard(s, r) {
       : '<div class="nxt"><small>NEXT MILESTONE</small><div class="xpt"><span>none yet</span><button class="btn sm" data-act="newQuestFor" data-id="' + s.id + '">+ Milestone</button></div></div>') +
     '<details><summary>Fed by</summary><p class="hint">' + esc(fedBy(s)) + '</p></details></div>';
 }
+function skillOverview() {
+  const rows = cfg().skills.map(s => ({ s, k: res.skills[s.id] })).filter(x => x.k).sort((a, b) => b.k.xp - a.k.xp || b.k.level - a.k.level), top = Math.max(1, ...rows.map(x => x.k.xp)), r = res.days[ui.date];
+  return '<div class="card"><h2>Skills</h2><div class="legend">' + skillsByGroup().map(g => '<span class="lg"><i style="background:' + gcol(g.g) + '"></i>' + esc(g.g) + '</span>').join('') + '</div>' +
+    rows.map(x => { const open = ui.skOpen === x.s.id; return '<div class="skr' + (open ? ' open' : '') + '" style="--gc:' + gcol(x.s.group) + '"><button class="skrow" data-act="skopen" data-id="' + x.s.id + '"><span class="skn">' + esc(x.s.name) + '</span><span class="skbar"><i style="width:' + Math.max(1.5, x.k.xp / top * 100).toFixed(1) + '%"></i></span><span class="skl">LV ' + x.k.level + '</span></button>' + (open ? skillCard(x.s, r) : '') + '</div>'; }).join('') + '</div>';
+}
 function vSkills() {
   const d = ui.date, r = res.days[d];
-  let h = '';
-  for (const grp of skillsByGroup()) h += '<div class="gh2" style="--gc:' + gcol(grp.g) + '">' + esc(grp.g) + '</div><div class="skgrid">' + grp.skills.map(s => skillCard(s, r)).join('') + '</div>';
-  h += '<div class="card" style="margin-top:12px"><h2>Why did I get this XP? &middot; ' + dlabel(d) + '</h2>';
+  let h = skillOverview();
+  h += '<details class="card" style="margin-top:12px"><summary>Why did I get this XP? &middot; ' + dlabel(d) + '</summary><div style="margin-top:10px">';
   if (!r) h += '<p class="mu">Nothing recorded for this date.</p>';
   else {
     if (r.priority) h += '<div class="note good">Priority bonus +' + Math.round(r.priority.bonus) + ' XP on ' + esc((indOf(r.priority.id) || {}).name) + '</div>';
@@ -1849,7 +1868,7 @@ function vSkills() {
         (a.cons ? '<tr><td>Weekly consistency bonus</td><td class="pos">+' + Math.round(a.cons) + '</td></tr>' : '') + (a.flat ? '<tr><td>Milestone bonus</td><td class="pos">+' + Math.round(a.flat) + '</td></tr>' : '') + (a.loss < -a.neg - 0.5 ? '<tr><td>Loss cap applied<span class="state">penalties are limited to a third of a level per week</span></td><td class="mu">' + sg(-a.loss) + '</td></tr>' : '') + '</tbody></table></div>';
     }
   }
-  return h + '</div>';
+  return h + '</div></details>';
 }
 
 /* ---------- simulate ---------- */
@@ -2089,6 +2108,8 @@ const ACT = {
   set: t => { const day = getDay(ui.date), id = t.dataset.id; const val = t.dataset.num ? Number(t.dataset.val) : t.dataset.val; if (day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
   setc: t => { const day = getDay(ui.date), k = t.dataset.id + '_cost'; if (day.v[k] === t.dataset.val) delete day.v[k]; else day.v[k] = t.dataset.val; persist(); },
   setbool: t => { const day = getDay(ui.date), id = t.dataset.id, val = t.dataset.val === 'true'; if (id in day.v && day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
+  skopen: t => { ui.skOpen = ui.skOpen === t.dataset.id ? null : t.dataset.id; render(); },
+  quickWater: () => { const ind = indOf('water'); if (!ind) return; const day = getDay(TODAY), h = new Date().getHours(), slot = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'night', slots = slotsOf(ind), sl = slots.includes(slot) ? slot : slots[slots.length - 1]; setPart(day, ind, sl, (partVal(day, ind, sl) || 0) + (ind.tap || 250)); persist(); },
   actopen: t => { ui.actOpen = ui.actOpen === t.dataset.id ? null : t.dataset.id; render(); },
   allon: t => { const day = getDay(ui.date), ids = t.dataset.ids.split(','), all = ids.every(id => day.v[id] === true); ids.forEach(id => { if (all) delete day.v[id]; else day.v[id] = true; }); persist(); },
   toggle: t => { const day = getDay(ui.date), id = t.dataset.id, ind = indOf(id); const cur = id in day.v ? !!day.v[id] : ind.defaultVal === true; day.v[id] = !cur; persist(); },

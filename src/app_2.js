@@ -80,6 +80,8 @@ const ACT = {
   set: t => { const day = getDay(ui.date), id = t.dataset.id; const val = t.dataset.num ? Number(t.dataset.val) : t.dataset.val; if (day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
   setc: t => { const day = getDay(ui.date), k = t.dataset.id + '_cost'; if (day.v[k] === t.dataset.val) delete day.v[k]; else day.v[k] = t.dataset.val; persist(); },
   setbool: t => { const day = getDay(ui.date), id = t.dataset.id, val = t.dataset.val === 'true'; if (id in day.v && day.v[id] === val) delete day.v[id]; else day.v[id] = val; persist(); },
+  skopen: t => { ui.skOpen = ui.skOpen === t.dataset.id ? null : t.dataset.id; render(); },
+  quickWater: () => { const ind = indOf('water'); if (!ind) return; const day = getDay(TODAY), h = new Date().getHours(), slot = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'night', slots = slotsOf(ind), sl = slots.includes(slot) ? slot : slots[slots.length - 1]; setPart(day, ind, sl, (partVal(day, ind, sl) || 0) + (ind.tap || 250)); persist(); },
   actopen: t => { ui.actOpen = ui.actOpen === t.dataset.id ? null : t.dataset.id; render(); },
   allon: t => { const day = getDay(ui.date), ids = t.dataset.ids.split(','), all = ids.every(id => day.v[id] === true); ids.forEach(id => { if (all) delete day.v[id]; else day.v[id] = true; }); persist(); },
   toggle: t => { const day = getDay(ui.date), id = t.dataset.id, ind = indOf(id); const cur = id in day.v ? !!day.v[id] : ind.defaultVal === true; day.v[id] = !cur; persist(); },

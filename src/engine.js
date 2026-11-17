@@ -84,7 +84,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 7;
+const REV = 8;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
 
@@ -174,7 +174,7 @@ function defaultConfig() {
     { id: 'b_sleep', name: 'Sleep', src: ['sleep_dur'] },
     { id: 'b_food', name: 'Nutrition', src: ['meal_b', 'meal_l', 'meal_d'] },
     { id: 'b_water', name: 'Hydration', src: ['water'] },
-    { id: 'b_move', name: 'Movement', src: ['walk'] },
+    { id: 'b_move', name: 'Movement', src: ['walk', 'workout'], mode: 'max' },
     { id: 'b_supp', name: 'Supplements', src: suppIds },
     { id: 'b_hyg', name: 'Hygiene', src: ['teeth_am', 'teeth_pm', 'shower'] },
     { id: 'b_home', name: 'Household', src: ['home'] },
@@ -219,6 +219,7 @@ function upgradeConfig(cfg) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 8) { const mv = (cfg.bars || []).find(b => b.id === 'b_move'); if (mv && mv.src.length === 1 && mv.src[0] === 'walk') { mv.src = ['walk', 'workout']; mv.mode = 'max'; } }
   if (from < 7) {
     for (const i of (cfg.indicators || [])) { const d = byId[i.id]; if (d && d.abs && d.kind === 'binary') { i.abs = true; i.optional = true; i.unitXp = d.unitXp; } }
     const sm = (cfg.indicators || []).find(i => i.id === 'smoked'); if (sm && !sm.alsoDebuff) sm.alsoDebuff = { skill: 'fitness', xp: -5 };
@@ -735,6 +736,8 @@ function liveFraction(ind, v, S, needLevel) {
     case 'tier': { const o = ind.options.find(o => o.id === x); return o ? (o.bar != null ? o.bar : clamp(o.s, 0, 1)) : 0; }
     case 'binary': if (ind.invert) return (ind.id in v && !x) ? 1 : 0; return (ind.id in v ? !!x : ind.defaultVal === true) ? 1 : 0;
     case 'rating': { const n = num(x); return n == null ? 0 : n / 10; }
+    case 'effort': { const n = num(x); return n == null ? 0 : clamp(n / (ind.target || 30), 0, 1); }
+    case 'workout': { const n = x && typeof x === 'object' ? num(x.min) : null; return n == null || n <= 0 ? 0 : clamp(n / (ind.target || 60), 0, 1); }
     case 'need': case 'rooms': return (needLevel != null ? needLevel : 0) / 100;
     default: return 0;
   }
@@ -746,7 +749,7 @@ function barsFor(state, res, date) {
     const srcs = b.src.map(id => cfg.indicators.find(i => i.id === id)).filter(i => i && !i.off);
     if (!srcs.length) return null;
     const vals = srcs.map(i => liveFraction(i, v, cfg.settings, dr && dr.need ? dr.need[i.id] : null));
-    const pct = Math.round(100 * mean(vals));
+    const pct = Math.round(100 * (b.mode === 'max' ? Math.max.apply(null, vals) : mean(vals)));
     const any = srcs.some(i => i.kind === 'need' || i.kind === 'rooms' || (i.id in v) || (i.defaultVal === true && day.slots && day.slots[i.slot]));
     return { id: b.id, name: b.name, pct, any, kind: srcs[0].kind };
   }).filter(Boolean);

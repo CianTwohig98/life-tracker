@@ -25,7 +25,7 @@ const mem = {}; let storageOk = true;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { storageOk = false; return mem[k] || null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { storageOk = false; mem[k] = v; } };
 let TODAY = todayStr(), appMode = 'real', state, res;
-const ui = { actOpen: null, actSel: {}, tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
+const ui = { skOpen: null, actOpen: null, actSel: {}, tab: 'dashboard', slot: 'morning', date: TODAY, simPersona: 'consistent', simDays: 90, sim: null, simAll: null };
 (function () { const h = new Date().getHours(); ui.slot = h < 11 ? 'morning' : h < 18 ? 'afternoon' : 'night'; })();
 
 function migrate(s) {
@@ -174,9 +174,9 @@ function vRecs() {
 function roomsCard() {
   const home = homeInd(), r = res.days[ui.date], rd = home && r && r.rooms && r.rooms[home.id]; if (!rd) return '';
   const rows = home.rooms.map(x => ({ id: x.id, name: x.name, lv: rd.rooms[x.id] })).sort((a, b) => a.lv - b.lv);
-  return '<div class="card"><div class="row sp"><h2 style="margin:0">Household &middot; ' + Math.round(rd.total) + '%</h2><span class="unit">weakest room: ' + esc(rows[0].name) + '</span></div><div style="margin-top:12px">' +
+  return '<details class="card"><summary>Rooms &middot; weakest: ' + esc(rows[0].name) + ' ' + Math.round(rows[0].lv) + '%</summary><div style="margin-top:12px">' +
     rows.map((x, i) => '<div class="rm' + (i === 0 && x.lv < 50 ? ' low' : '') + '"><span class="nm">' + esc(x.name) + '</span><div class="bar thin ' + barCls(x.lv) + '"><i style="width:' + Math.round(x.lv) + '%"></i></div><span class="unit">' + Math.round(x.lv) + '%</span></div>').join('') + '</div>' +
-    '</div>';
+    '</details>';
 }
 function vDashboard() {
   const d = ui.date, r = res.days[d], day = state.logs[d] || {};
@@ -192,20 +192,14 @@ function vDashboard() {
   const modeBadge = r && r.mode !== 'normal' ? '<span class="badge mode">' + esc(r.mode) + ' mode</span>' : '';
   const nextSlot = E.SLOTS.find(s => !(r && r.slots[s].logged)) || null;
   h += '<div class="grid g2">';
-  h += '<div class="card"><h2>Needs</h2>' + res.bars.map(b => '<div class="need"><div class="nh"><span>' + esc(b.name) + '</span><b>' + (b.any ? b.pct + '%' : '-') + '</b></div><div class="bar ' + barCls(b.pct) + (b.any ? '' : ' empty') + '"><i style="width:' + (b.any ? b.pct : 0) + '%"></i></div></div>').join('') + '</div>';
+  h += '<div class="card"><h2>Needs</h2>' + res.bars.map(b => '<div class="need"><div class="nh"><span>' + esc(b.name) + '</span><span class="row" style="gap:8px">' + (b.id === 'b_water' && d === TODAY ? '<button class="btn sm" data-act="quickWater">+250 ml</button>' : '') + (b.any ? '<b>' + b.pct + '%</b>' : '<small class="mu">not logged</small>') + '</span></div><div class="bar ' + barCls(b.pct) + (b.any ? '' : ' empty') + '"><i style="width:' + (b.any ? b.pct : 0) + '%"></i></div></div>').join('') + '</div>';
   h += '<div class="card"><div class="row sp"><h2 style="margin:0">' + (d === TODAY ? 'Today' : dlabel(d)) + '</h2><div class="row">' + dayBadge + modeBadge + slotDots(d) + '</div></div>';
   h += '<div class="big ' + (dayXp(d) >= 0 ? 'pos' : 'neg') + '">' + sg(dayXp(d)) + ' <small>XP</small></div>';
   h += '<div class="row" style="margin:8px 0 12px"><label class="mu">Priority today</label><select data-in="priority">' + priorityOptions(day.priority) + '</select></div>';
-  h += '<button class="btn pri" data-act="openSlot" data-id="' + (nextSlot || 'night') + '">' + (nextSlot ? 'Check in: ' + nextSlot : 'All check-ins done, review night') + '</button></div>';
+  h += '</div>';
   h += '</div>';
   h += '<div class="grid g2" style="margin-top:12px">' + roomsCard() + '<div class="card"><h2>Weekly goals</h2>' + (res.weekly.map(w => { const p = Math.min(100, Math.round(w.count / w.goal * 100)); return '<div class="goal"><div class="nh"><span>' + esc(w.name) + '</span><b>' + w.count + ' / ' + w.goal + '</b></div><div class="bar thin ' + (p >= 100 ? 'hi' : p >= 50 ? 'mid' : 'lo') + '"><i style="width:' + p + '%"></i></div></div>'; }).join('') || '<p class="mu">No weekly goals set.</p>') + '</div></div>';
-  for (const grp of skillsByGroup()) {
-    h += '<div class="sec" style="border-bottom-color:' + gcol(grp.g) + '"><h2 style="color:' + gcol(grp.g) + '">' + esc(grp.g) + '</h2><span class="unit">' + grp.skills.length + ' skills</span></div><div class="grid g3">' + grp.skills.map(s => {
-      const k = res.skills[s.id]; if (!k) return ''; const a = r ? r.skills[s.id] : null; const dx = a ? a.gain - a.loss : 0;
-      return '<div class="card skill" style="--gc:' + gcol(grp.g) + '"><div class="sh"><div><b>' + esc(s.name) + '</b><small class="' + (k.form >= 1 ? 'up' : 'dn') + '">form ' + k.form.toFixed(2) + 'x</small></div><div class="lv">' + k.level + '</div></div><div class="bar thin sk"><i style="width:' + Math.round(k.pct * 100) + '%"></i></div><div class="sf"><span>' + fmt(k.into) + ' / ' + fmt(k.need) + ' XP</span><span class="' + (dx >= 0 ? 'up' : 'dn') + '">' + sg(dx) + (d === TODAY ? ' today' : '') + '</span></div></div>';
-    }).join('') + '</div>';
-  }
-  h += '<div class="grid g2" style="margin-top:12px"><div class="card"><h2>Milestones in progress</h2>' + questList(true) + '</div>';
+  h += '<div class="grid g2" style="margin-top:12px">';
   const days30 = lastDays(30);
   h += '<div class="card"><h2>XP per day, last 30 days</h2>' + svgBars(days30.map(x => dayXp(x))) + '</div>';
   const mk = id => { const pts = []; days30.forEach((x, i) => { const v = state.logs[x] && state.logs[x].v ? E.num(state.logs[x].v[id]) : null; pts.push([i, v]); }); return pts; };
@@ -478,11 +472,15 @@ function skillCard(s, r) {
       : '<div class="nxt"><small>NEXT MILESTONE</small><div class="xpt"><span>none yet</span><button class="btn sm" data-act="newQuestFor" data-id="' + s.id + '">+ Milestone</button></div></div>') +
     '<details><summary>Fed by</summary><p class="hint">' + esc(fedBy(s)) + '</p></details></div>';
 }
+function skillOverview() {
+  const rows = cfg().skills.map(s => ({ s, k: res.skills[s.id] })).filter(x => x.k).sort((a, b) => b.k.xp - a.k.xp || b.k.level - a.k.level), top = Math.max(1, ...rows.map(x => x.k.xp)), r = res.days[ui.date];
+  return '<div class="card"><h2>Skills</h2><div class="legend">' + skillsByGroup().map(g => '<span class="lg"><i style="background:' + gcol(g.g) + '"></i>' + esc(g.g) + '</span>').join('') + '</div>' +
+    rows.map(x => { const open = ui.skOpen === x.s.id; return '<div class="skr' + (open ? ' open' : '') + '" style="--gc:' + gcol(x.s.group) + '"><button class="skrow" data-act="skopen" data-id="' + x.s.id + '"><span class="skn">' + esc(x.s.name) + '</span><span class="skbar"><i style="width:' + Math.max(1.5, x.k.xp / top * 100).toFixed(1) + '%"></i></span><span class="skl">LV ' + x.k.level + '</span></button>' + (open ? skillCard(x.s, r) : '') + '</div>'; }).join('') + '</div>';
+}
 function vSkills() {
   const d = ui.date, r = res.days[d];
-  let h = '';
-  for (const grp of skillsByGroup()) h += '<div class="gh2" style="--gc:' + gcol(grp.g) + '">' + esc(grp.g) + '</div><div class="skgrid">' + grp.skills.map(s => skillCard(s, r)).join('') + '</div>';
-  h += '<div class="card" style="margin-top:12px"><h2>Why did I get this XP? &middot; ' + dlabel(d) + '</h2>';
+  let h = skillOverview();
+  h += '<details class="card" style="margin-top:12px"><summary>Why did I get this XP? &middot; ' + dlabel(d) + '</summary><div style="margin-top:10px">';
   if (!r) h += '<p class="mu">Nothing recorded for this date.</p>';
   else {
     if (r.priority) h += '<div class="note good">Priority bonus +' + Math.round(r.priority.bonus) + ' XP on ' + esc((indOf(r.priority.id) || {}).name) + '</div>';
@@ -495,7 +493,7 @@ function vSkills() {
         (a.cons ? '<tr><td>Weekly consistency bonus</td><td class="pos">+' + Math.round(a.cons) + '</td></tr>' : '') + (a.flat ? '<tr><td>Milestone bonus</td><td class="pos">+' + Math.round(a.flat) + '</td></tr>' : '') + (a.loss < -a.neg - 0.5 ? '<tr><td>Loss cap applied<span class="state">penalties are limited to a third of a level per week</span></td><td class="mu">' + sg(-a.loss) + '</td></tr>' : '') + '</tbody></table></div>';
     }
   }
-  return h + '</div>';
+  return h + '</div></details>';
 }
 
 /* ---------- simulate ---------- */

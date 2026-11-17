@@ -258,3 +258,21 @@ details.ds summary{margin:0}
 .ptot b{color:var(--tx,inherit)}
 .tdadd{margin-top:10px}.row.nw{flex-wrap:nowrap}.row.nw input{flex:1;min-width:0}
 .tdopt{margin-top:6px}.tdopt summary{margin:0}.tdopt .fld{margin-top:8px}
+
+/* skills overview: one sorted bar chart, tap a row to open its detail */
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 10px;font-size:11px;color:var(--mu)}
+.lg i{display:inline-block;width:8px;height:8px;margin-right:5px}
+.skr{background:var(--p1);border:1px solid var(--line);border-left:3px solid var(--gc);margin-bottom:4px}
+.skrow{display:grid;grid-template-columns:minmax(96px,34%) 1fr 52px;gap:10px;align-items:center;width:100%;padding:9px 10px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.skrow .skn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skbar{height:10px;background:#0a0c0f;border:1px solid var(--line);overflow:hidden}
+.skbar>i{display:block;height:100%;background:var(--gc)}
+.skrow .skl{text-align:right;font-variant-numeric:tabular-nums;color:var(--mu);white-space:nowrap}
+.skr.open{border-color:var(--line2)}
+.skr.open .skrow .skl{color:var(--tx,inherit)}
+.skr .sk{border:0;border-top:1px solid var(--line);border-left:0;background:none;margin:0}
+.skr .sk .skh{display:none}
+details.card>summary{cursor:pointer}
+.skrow{grid-template-columns:minmax(112px,40%) 1fr 54px}
+.skrow .skn{font-size:13px}
+.skrow .skl{font-size:13px;font-weight:700}
