@@ -135,6 +135,17 @@ const ACT = {
     state.todos.push({ id: rid('td'), text, skill: ($('#tdSkill') || {}).value || 'household', size: ($('#tdSize') || {}).value || 'normal', due: ($('#tdDue') || {}).value || null, reward: (($('#tdReward') || {}).value || '').trim(), created: TODAY, done: null });
     persist(); toast('Added'); const el = $('#tdText'); if (el) el.focus();
   },
+  addIdea: () => {
+    const el = $('#ideaText'), text = ((el || {}).value || '').trim(); if (!text) { toast('Write the idea first'); return; }
+    state.ideas.unshift({ id: rid('id'), text, created: TODAY });
+    persist(); toast('Saved'); const e2 = $('#ideaText'); if (e2) e2.focus();
+  },
+  delIdea: t => { const i = state.ideas.find(x => x.id === t.dataset.id); if (!i) return; if (i.text.length > 40 && !confirm('Delete this idea?')) return; state.ideas = state.ideas.filter(x => x.id !== i.id); persist(); },
+  ideaToTodo: t => {
+    const i = state.ideas.find(x => x.id === t.dataset.id); if (!i) return;
+    state.todos.push({ id: rid('td'), text: i.text.replace(/\s+/g, ' ').slice(0, 140), skill: 'household', size: 'normal', due: null, reward: '', created: TODAY, done: null });
+    state.ideas = state.ideas.filter(x => x.id !== i.id); persist(); toast('Moved to to-dos');
+  },
   doneTodo: t => {
     const td = state.todos.find(x => x.id === t.dataset.id); if (!td || td.done) return; const before = res;
     td.done = TODAY; state.bonuses.push({ date: TODAY, skill: td.skill, xp: todoXp(td), label: 'To-do: ' + td.text, todo: td.id }); save(); res = E.compute(state, { today: TODAY, viewDate: ui.date });
@@ -218,6 +229,7 @@ const ACT = {
   delTask: t => { const h = homeInd(); h.tasks = h.tasks.filter(k => k.id !== t.dataset.id); persist(); }
 };
 const INP = {
+  ideaText: t => { const i = state.ideas.find(x => x.id === t.dataset.id); if (!i) return; const v = t.value.trim(); if (!v) { t.value = i.text; toast('Use x to delete'); return; } if (v !== i.text) { i.text = v; persist(); } },
   actsel: t => { ui.actSel[t.dataset.cat] = t.value; render(); },
   date: t => { if (t.value && t.value <= TODAY) { ui.date = t.value; render(); } },
   time: t => { const day = getDay(ui.date); if (t.value.trim() === '') { delete day.v[t.dataset.id]; persist(); return; } const p = parseTime(t.value); if (!p) { toast('Could not read that time. Try 10:30 or 1030.'); render(); return; } day.v[t.dataset.id] = p; persist(); },
@@ -252,7 +264,7 @@ const INP = {
 };
 document.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t || t.disabled) return; const f = ACT[t.dataset.act]; if (f) f(t, e); });
 document.addEventListener('change', e => { const t = e.target.closest('[data-in]'); if (!t) return; const f = INP[t.dataset.in]; if (f) f(t, e); });
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'tdText') ACT.addTodo(); if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'tdText') ACT.addTodo(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target && e.target.id === 'ideaText') ACT.addIdea(); if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
 
 Object.assign(ACT, SYNC_ACT);
 state = loadState();

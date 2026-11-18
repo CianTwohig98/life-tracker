@@ -14,6 +14,8 @@ m = S.merge(A.s, B.s); ok(m.logs['2026-11-11'].v.sleep_dur === 9, 'same day edit
 m = S.merge(B.s, A.s); ok(m.logs['2026-11-11'].v.sleep_dur === 9, 'merge is symmetric');
 edit(B, s => { s.todos.push({ id: 'x', text: 'plant', done: null }); }, 300);
 m = S.merge(A.s, B.s); ok(m.todos.length === 1, 'todos travel (misc section newer on B)');
+edit(B, s => { s.ideas = s.ideas || []; s.ideas.push({ id: 'i1', text: 'idea', created: '2026-11-11' }); }, 350);
+m = S.merge(A.s, B.s); ok(m.ideas && m.ideas.length === 1, 'ideas travel (misc section)');
 edit(A, s => { s.config.settings.kcal = 2222; }, 400);
 m = S.merge(A.s, B.s); ok(m.config.settings.kcal === 2222 && m.todos.length === 1, 'config and todos each take their own newest version');
 const fresh = mkDev(); m = S.merge(fresh.s, A.s); ok(m.config.settings.kcal === 2222 && Object.keys(m.logs).length === 2, 'a brand-new device adopts the cloud data and config');

@@ -3,7 +3,7 @@
   'use strict';
   const J = x => JSON.stringify(x === undefined ? null : x);
   const clone = x => JSON.parse(JSON.stringify(x));
-  const miscOf = s => ({ months: s.months || {}, bonuses: s.bonuses || [], claims: s.claims || {}, todos: s.todos || [] });
+  const miscOf = s => ({ months: s.months || {}, bonuses: s.bonuses || [], claims: s.claims || {}, todos: s.todos || [], ideas: s.ideas || [] });
   const hashes = s => { const logs = {}; for (const d of Object.keys(s.logs || {})) logs[d] = J(s.logs[d]); return { config: J(s.config), misc: J(miscOf(s)), logs }; };
 
   /** Stamp whatever changed since lastH with `now`. Returns the new lastH. */

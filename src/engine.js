@@ -243,7 +243,7 @@ function upgradeConfig(cfg) {
   cfg.rev = REV; return cfg;
 }
 function defaultState(today) {
-  return { v: 2, config: defaultConfig(), logs: {}, months: {}, bonuses: [], claims: {}, todos: [], startDate: today };
+  return { v: 2, config: defaultConfig(), logs: {}, months: {}, bonuses: [], claims: {}, todos: [], ideas: [], startDate: today };
 }
 
 /* ---------- kinds ---------- */

@@ -38,7 +38,7 @@ function migrate(s) {
   for (const k of ['skills', 'indicators', 'bars', 'quests']) if (!Array.isArray(s.config[k])) s.config[k] = def.config[k];
   s.config.skills.forEach(k => { if (!k.group) k.group = 'Lifestyle'; });
   E.upgradeConfig(s.config);
-  s.logs = s.logs || {}; s.months = s.months || {}; s.bonuses = s.bonuses || []; s.todos = Array.isArray(s.todos) ? s.todos : [];
+  s.logs = s.logs || {}; s.months = s.months || {}; s.bonuses = s.bonuses || []; s.todos = Array.isArray(s.todos) ? s.todos : []; s.ideas = Array.isArray(s.ideas) ? s.ideas : [];
   s.claims = s.claims || {}; s.startDate = s.startDate || TODAY; s.v = 2;
   return s;
 }
@@ -432,8 +432,19 @@ function vTodos() {
   let h = '<div class="card"><div class="row sp"><h2 style="margin:0">To-dos &middot; ' + open.length + ' open</h2><span class="unit">7 days: ' + wkDone + ' done, +' + wkXp + ' XP</span></div>' + todoAdd(true) +
     '<div style="margin-top:10px">' + (open.length ? open.map(todoRow).join('') : '<p class="mu">Nothing open.</p>') + '</div></div>';
   h += '<div class="card" style="margin-top:12px">' + momentumBar(TODAY) + '</div>';
+  h += vIdeas();
   if (done.length) h += '<details class="card" style="margin-top:12px"' + (open.length ? '' : ' open') + '><summary>Done &middot; ' + done.length + '</summary><div style="margin-top:10px">' + done.slice(0, 25).map(todoRow).join('') + (done.length > 25 ? '<p class="hint">Showing the latest 25.</p>' : '') + '</div></details>';
   return h;
+}
+function ideaRow(i) {
+  return '<div class="idea"><textarea data-in="ideaText" data-id="' + i.id + '" rows="2" maxlength="2000" aria-label="Idea">' + esc(i.text) + '</textarea>' +
+    '<div class="row sp"><span class="unit">' + dlabel(i.created) + '</span><span class="row"><button class="btn sm" data-act="ideaToTodo" data-id="' + i.id + '">Make to-do</button><button class="btn sm danger" data-act="delIdea" data-id="' + i.id + '" aria-label="Delete idea">x</button></span></div></div>';
+}
+function vIdeas() {
+  const ideas = (state.ideas || []).slice().sort((a, b) => (b.created || '').localeCompare(a.created || ''));
+  return '<div class="card" style="margin-top:12px"><div class="row sp"><h2 style="margin:0">Ideas &middot; ' + ideas.length + '</h2></div>' +
+    '<div class="tdadd"><textarea id="ideaText" rows="2" maxlength="2000" placeholder="Jot an idea, anything goes"></textarea><div class="row sp" style="margin-top:6px"><span class="unit">Edits save when you tap away</span><button class="btn pri" data-act="addIdea">Add idea</button></div></div>' +
+    '<div style="margin-top:10px">' + (ideas.length ? ideas.map(ideaRow).join('') : '<p class="mu">No ideas yet.</p>') + '</div></div>';
 }
 function momentumBar(d) {
   const r = res.days[d], n = r ? r.todosDone : 0, m = r ? r.momentum : 0, tiers = E.MOMENTUM || [0, 0.1, 0.18, 0.25], nxt = n < tiers.length - 1 ? tiers[n + 1] : null;
