@@ -271,7 +271,7 @@ function control(ind, v, day) {
   const chips = (vals, cur, fmtf) => vals.map(c => '<button class="chp ' + (String(cur) === String(c) ? 'on' : '') + '" data-act="set" data-num="1" ' + a + ' data-val="' + c + '">' + (fmtf ? fmtf(c) : c) + '</button>').join('');
   const r = res.days[ui.date];
   switch (ind.kind) {
-    case 'binary': { if (ind.invert) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp bad ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; const val = id in v ? !!x : ind.defaultVal === true; return '<button class="chp ' + (val ? 'on' : '') + '" data-act="toggle" ' + a + '>' + (ind.defaultVal === true ? (val ? 'Yes' : 'No') : (val ? 'Done' : 'Not yet')) + '</button>'; }
+    case 'binary': { if (ind.yesno) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; if (ind.invert) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp bad ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; const val = id in v ? !!x : ind.defaultVal === true; return '<button class="chp ' + (val ? 'on' : '') + '" data-act="toggle" ' + a + '>' + (ind.defaultVal === true ? (val ? 'Yes' : 'No') : (val ? 'Done' : 'Not yet')) + '</button>'; }
     case 'zone': return (ind.id === 'sleep_dur' ? chips([6, 7, 7.5, 8, 8.5, 9], x) : '') + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">' + esc(ind.unit || '') + '</span>';
     case 'ceil': return chips([0, 10, 20, 40, 60], x, c => c) + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">' + esc(ind.unit || '') + '</span>';
     case 'bar': { const tgt = ind.targetKey ? S_()[ind.targetKey] : ind.target; return (ind.tap ? '<button class="chp" data-act="add" ' + a + ' data-val="-' + ind.tap + '">-' + ind.tap + '</button><button class="chp on" data-act="add" ' + a + ' data-val="' + ind.tap + '">+' + ind.tap + '</button>' : '') + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">/ ' + fmt(tgt) + ' ' + esc(ind.unit || '') + '</span>'; }
@@ -363,7 +363,7 @@ function vCheckin() {
     if (!groups[sid]) continue; const sk = skillOf(sid) || { name: 'Other' };
     const list = groups[sid].filter(i => !(catOf[sid] && i.kind !== 'binary'));
     if (!list.length) continue;
-    const bins = list.filter(i => i.kind === 'binary' && !i.invert && i.defaultVal !== true), rest = list.filter(i => !bins.includes(i));
+    const bins = list.filter(i => i.kind === 'binary' && !i.invert && !i.yesno && i.defaultVal !== true), rest = list.filter(i => !bins.includes(i));
     let inner = bins.length ? binRow(bins, v) : '';
     inner += rest.map(ind => {
       const o = r && r.inds[ind.id], logged = day.slots && slotsOf(ind).some(s => day.slots[s]);

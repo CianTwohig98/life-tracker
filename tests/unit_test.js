@@ -425,5 +425,24 @@ console.log('27. job search: weekday minimums, GIS, fitness hour, upgrade');
   const ro = E.compute(os, { today: '2026-11-26' }); ok(ro.days['2026-11-24'].inds.apps_sent.state !== 'miss' && ro.days['2026-11-25'].inds.apps_sent.state === 'miss', 'old weekdays unpenalised, new ones penalised');
 }
 
+console.log('28. scientific paper (yes/no, evening)');
+{
+  const s = mk('2026-11-02');
+  day(s, '2026-11-03', { paper: true }, ['night']); day(s, '2026-11-04', { paper: false }, ['night']);
+  const r = E.compute(s, { today: '2026-11-06' });
+  ok(r.days['2026-11-03'].inds.paper.xp > 0 && r.days['2026-11-03'].inds.paper.state === 'ok', 'a paper read earns reading XP');
+  ok(r.days['2026-11-04'].inds.paper.xp < 0 && Math.abs(r.days['2026-11-04'].inds.paper.xp) < r.days['2026-11-03'].inds.paper.xp / 3, 'no paper is a small penalty');
+  ok(E.defaultState('2026-11-02').config.indicators.find(i => i.id === 'paper').slot === 'night', 'asked in the evening check-in only');
+  const old = E.defaultState('2026-11-02').config; old.rev = 9; old.indicators = old.indicators.filter(i => i.id !== 'paper');
+  E.upgradeConfig(old, '2026-11-25'); const pi = old.indicators.find(i => i.id === 'paper');
+  ok(pi && pi.from === '2026-11-25' && old.indicators.indexOf(pi) < old.indicators.findIndex(i => i.id === 'reading'), 'a rev 9 config gains the paper question, counted from the upgrade day');
+  const os = mk('2026-11-02'); os.config = old; day(os, '2026-11-24', { study_de: 0 }, ['night']);
+  const ro = E.compute(os, { today: '2026-11-26' }); ok(ro.days['2026-11-24'].inds.paper.state === 'none' && ro.days['2026-11-24'].inds.paper.xp === 0, 'earlier days are not penalised');
+  const p = mk('2026-11-02'); const rr = E.compute(p, { today: '2026-11-03' }); const rec = E.recommend(p, rr, '2026-11-03', 10 * 60);
+  ok(rec.schedule.some(x => /scientific paper/.test(x.text)), 'the plan schedules a paper');
+  day(p, '2026-11-03', { paper: true }, ['night']); const rec2 = E.recommend(p, E.compute(p, { today: '2026-11-03' }), '2026-11-03', 10 * 60);
+  ok(!rec2.schedule.some(x => /scientific paper/.test(x.text)), 'not scheduled once read');
+}
+
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));
 process.exit(fails ? 1 : 0);

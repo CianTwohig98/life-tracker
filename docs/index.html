@@ -390,7 +390,7 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 9;
+const REV = 10;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
 const MULTI = { study_de: ALL3, study_or: ALL3, study_gis: ALL3, job_time: ALL3, job_search: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: ALL3, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: ALL3, avoided: PN };
 
@@ -462,6 +462,7 @@ function defaultConfig() {
     I({ id: 'study_de', name: 'German study', skill: 'german', slot: 'afternoon', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60 }),
     I({ id: 'study_or', name: 'Operations Research study', skill: 'or', slot: 'afternoon', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, altWith: ['study_gis'], hint: 'Upskilling hour: Operations Research or GIS.' }),
     I({ id: 'study_gis', name: 'GIS study', skill: 'gis', slot: 'afternoon', kind: 'effort', w: 1, optional: true, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, altWith: ['study_or'], hint: 'Counts as the upskilling hour instead of Operations Research.' }),
+    I({ id: 'paper', name: 'Read a scientific paper today', skill: 'reading', slot: 'night', kind: 'binary', w: 1, yesno: true, hint: 'A paper counts: skim it, read the abstract and conclusions, or read it fully.' }),
     I({ id: 'reading', name: 'Reading', skill: 'reading', slot: 'night', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, hint: 'Books, literature, newspaper, websites.' }),
     // ---- Finance
     I({ id: 'cashflow', name: 'Cashflow today', skill: 'finance', slot: 'night', kind: 'cashflow', w: 3, goal: 100, ref: 25, ideal: 20, hint: 'Spending counts 1.2x against earnings. Earned includes saved or invested.' }),
@@ -528,6 +529,10 @@ function upgradeConfig(cfg, today) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 10) {
+    const ids = cfg.indicators || [];
+    if (!ids.some(i => i.id === 'paper')) { const k = ids.findIndex(i => i.id === 'reading'), n = JSON.parse(JSON.stringify(byId.paper)); if (today) n.from = today; ids.splice(k >= 0 ? k : ids.length, 0, n); }
+  }
   if (from < 9) {
     const ids = cfg.indicators || [], get = id => ids.find(i => i.id === id), at = id => ids.findIndex(i => i.id === id);
     if (cfg.skills && !cfg.skills.some(s => s.id === 'gis')) { const k = cfg.skills.findIndex(s => s.id === 'or'); cfg.skills.splice(k >= 0 ? k + 1 : cfg.skills.length, 0, { id: 'gis', name: 'GIS', group: 'Career & upskilling' }); }
@@ -864,7 +869,8 @@ function compute(state, opts) {
       }
       ctx.logged = sl.logged; ctx.sf = sl.factor || 1;
       let r;
-      if (!sl.logged && !meta.always && !meta.weekly) {
+      if (ind.from && d < ind.from) r = { xp: 0, state: 'none' };
+      else if (!sl.logged && !meta.always && !meta.weekly) {
         if (ind.optional || !meta.bad) r = { xp: 0, state: 'none' };
         else if (isToday) r = { xp: 0, state: 'pending' };
         else r = { xp: -S.assumedBad * FULL[ind.id], state: 'unlogged' };
@@ -1197,6 +1203,7 @@ function recommend(state, res, date, nowIn) {
       const uo = ind('study_or'), ug = ind('study_gis');
       if (uo || ug) { const tg = (uo || ug).target, done = (uo ? cnt('study_or') : 0) + (ug ? cnt('study_gis') : 0); blocks(L.B, 'study_or', 'Upskilling (' + (uo && ug ? 'Operations Research or GIS' : uo ? 'Operations Research' : 'GIS') + ')', Math.max(0, tg * scale - done), (uo || ug).skill); }
     }
+    const pp = ind('paper'); if (pp && !cheatOn && v.paper !== true && !rest) L.B.push({ kind: 'work', id: 'paper', mins: 30, text: 'Read a scientific paper, 30 min', short: 'read a paper', skill: pp.skill });
     const rd = ind('reading'); if (rd && !cheatOn) { const rem = left('reading', 1) - (ind('read_bed') && !(v.read_bed === true) ? 30 : 0); if (rem > 5) blocks(L.B, 'reading', 'Reading (book, literature, newspaper, websites)', rem, rd.skill); }
     const wo = ind('workout');
     if (wo && wsum && !(v.workout && E_num(v.workout.min) > 0) && !rest) {
@@ -1413,7 +1420,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = root.LifeR
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LTSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
-window.LT_BUILD="2026-11-25 18:00";
+window.LT_BUILD="2026-11-25 20:48";
 </script>
 <script>
 /* Life Tracker UI */
@@ -1689,7 +1696,7 @@ function control(ind, v, day) {
   const chips = (vals, cur, fmtf) => vals.map(c => '<button class="chp ' + (String(cur) === String(c) ? 'on' : '') + '" data-act="set" data-num="1" ' + a + ' data-val="' + c + '">' + (fmtf ? fmtf(c) : c) + '</button>').join('');
   const r = res.days[ui.date];
   switch (ind.kind) {
-    case 'binary': { if (ind.invert) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp bad ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; const val = id in v ? !!x : ind.defaultVal === true; return '<button class="chp ' + (val ? 'on' : '') + '" data-act="toggle" ' + a + '>' + (ind.defaultVal === true ? (val ? 'Yes' : 'No') : (val ? 'Done' : 'Not yet')) + '</button>'; }
+    case 'binary': { if (ind.yesno) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; if (ind.invert) return '<button class="chp ' + (id in v && !x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="false">No</button><button class="chp bad ' + (id in v && x ? 'on' : '') + '" data-act="setbool" ' + a + ' data-val="true">Yes</button>'; const val = id in v ? !!x : ind.defaultVal === true; return '<button class="chp ' + (val ? 'on' : '') + '" data-act="toggle" ' + a + '>' + (ind.defaultVal === true ? (val ? 'Yes' : 'No') : (val ? 'Done' : 'Not yet')) + '</button>'; }
     case 'zone': return (ind.id === 'sleep_dur' ? chips([6, 7, 7.5, 8, 8.5, 9], x) : '') + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">' + esc(ind.unit || '') + '</span>';
     case 'ceil': return chips([0, 10, 20, 40, 60], x, c => c) + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">' + esc(ind.unit || '') + '</span>';
     case 'bar': { const tgt = ind.targetKey ? S_()[ind.targetKey] : ind.target; return (ind.tap ? '<button class="chp" data-act="add" ' + a + ' data-val="-' + ind.tap + '">-' + ind.tap + '</button><button class="chp on" data-act="add" ' + a + ' data-val="' + ind.tap + '">+' + ind.tap + '</button>' : '') + '<input type="number" step="' + (ind.step || 1) + '" ' + a + ' data-in="num" value="' + (x == null ? '' : x) + '"><span class="unit">/ ' + fmt(tgt) + ' ' + esc(ind.unit || '') + '</span>'; }
@@ -1781,7 +1788,7 @@ function vCheckin() {
     if (!groups[sid]) continue; const sk = skillOf(sid) || { name: 'Other' };
     const list = groups[sid].filter(i => !(catOf[sid] && i.kind !== 'binary'));
     if (!list.length) continue;
-    const bins = list.filter(i => i.kind === 'binary' && !i.invert && i.defaultVal !== true), rest = list.filter(i => !bins.includes(i));
+    const bins = list.filter(i => i.kind === 'binary' && !i.invert && !i.yesno && i.defaultVal !== true), rest = list.filter(i => !bins.includes(i));
     let inner = bins.length ? binRow(bins, v) : '';
     inner += rest.map(ind => {
       const o = r && r.inds[ind.id], logged = day.slots && slotsOf(ind).some(s => day.slots[s]);
