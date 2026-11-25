@@ -37,7 +37,7 @@ function migrate(s) {
   if (!Array.isArray(S.backfill)) S.backfill = dS.backfill;
   for (const k of ['skills', 'indicators', 'bars', 'quests']) if (!Array.isArray(s.config[k])) s.config[k] = def.config[k];
   s.config.skills.forEach(k => { if (!k.group) k.group = 'Lifestyle'; });
-  E.upgradeConfig(s.config);
+  E.upgradeConfig(s.config, TODAY);
   s.logs = s.logs || {}; s.months = s.months || {}; s.bonuses = s.bonuses || []; s.todos = Array.isArray(s.todos) ? s.todos : []; s.ideas = Array.isArray(s.ideas) ? s.ideas : [];
   s.claims = s.claims || {}; s.startDate = s.startDate || TODAY; s.v = 2;
   return s;
@@ -61,9 +61,9 @@ const isPart = i => (i.kind === 'effort' || i.kind === 'bar') && slotsOf(i).leng
 /* full-day items live in the last check-in they allow (night); one-slot items stay where they are */
 const lastSlot = i => slotsOf(i).slice().sort((a, b) => E.SLOTS.indexOf(a) - E.SLOTS.indexOf(b)).pop();
 const shownIn = (i, slot) => slotsOf(i).includes(slot) && lastSlot(i) === slot;
-const SHORT = { supp_multi: 'Multivitamin', supp_d3: 'Vitamin D3', supp_zinc: 'Zinc', supp_creatine: 'Creatine', supp_water: 'Water 0.5 L', supp_protein: 'Protein 30 g', supp_mag: 'Magnesium', teeth_am: 'Teeth', teeth_pm: 'Teeth', shower: 'Shower', skincare: 'Skincare', sunscreen: 'Sunscreen', stretch_ham: 'Hamstring stretch', job_time: 'Job / PhD', study_de: 'German', study_or: 'Operations Research', reading: 'Reading', roles_found: 'Roles found', apps_sent: 'Applications sent', org_browsed: 'Browsed an organisation', uni_browsed: 'Browsed a university', coffee_chat: 'Coffee chat', outreach: 'Reached out', workout: 'Workout', walk: 'Walk' };
+const SHORT = { supp_multi: 'Multivitamin', supp_d3: 'Vitamin D3', supp_zinc: 'Zinc', supp_creatine: 'Creatine', supp_water: 'Water 0.5 L', supp_protein: 'Protein 30 g', supp_mag: 'Magnesium', teeth_am: 'Teeth', teeth_pm: 'Teeth', shower: 'Shower', skincare: 'Skincare', sunscreen: 'Sunscreen', stretch_ham: 'Hamstring stretch', job_time: 'Applications (hour)', job_search: 'Job search (hour)', study_de: 'German', study_or: 'Operations Research', study_gis: 'GIS', reading: 'Reading', roles_found: 'Roles found', apps_sent: 'Applications sent', org_browsed: 'Browsed an organisation', uni_browsed: 'Browsed a university', coffee_chat: 'Coffee chat', outreach: 'Leads contacted', workout: 'Workout', walk: 'Walk' };
 const shortName = i => SHORT[i.id] || i.name;
-const ACT_CATS = [{ id: 'career', label: 'Career', skills: ['career'] }, { id: 'study', label: 'Study', skills: ['german', 'or'] }, { id: 'fitness', label: 'Fitness', skills: ['fitness'] }, { id: 'reading', label: 'Reading', skills: ['reading'], lastOnly: true }];
+const ACT_CATS = [{ id: 'career', label: 'Career', skills: ['career'] }, { id: 'study', label: 'Study', skills: ['german', 'or', 'gis'] }, { id: 'fitness', label: 'Fitness', skills: ['fitness'] }, { id: 'reading', label: 'Reading', skills: ['reading'], lastOnly: true }];
 function partVal(day, ind, slot) {
   const p = day.parts && day.parts[ind.id];
   if (p && Object.keys(p).length) return p[slot] == null ? null : p[slot];
@@ -321,7 +321,8 @@ function actCard(cat, members, v, day) {
   const sel = members.find(i => i.id === ui.actSel[cat.id]) || members.find(i => actValue(i, v)) || members[0];
   const done = members.map(i => { const t = actValue(i, v); return t ? shortName(i) + ' ' + t : ''; }).filter(Boolean);
   const rd = res.days[ui.date], axp = members.reduce((a, i) => { const o = rd && rd.inds[i.id]; return a + (o && actValue(i, v) ? o.xp : 0); }, 0);
-  let h = '<div class="act' + (open ? ' open' : '') + (done.length ? ' has' : '') + '" style="--gc:' + scol(members[0].skill) + '"><button class="actb" data-act="actopen" data-id="' + cat.id + '"><b>' + esc(cat.label) + '</b><span class="unit">' + (done.length ? esc(done.join(', ')) : 'nothing yet') + '</span>' + (done.length && Math.abs(axp) >= 0.5 ? '<span class="xp ' + (axp > 0 ? 'p' : 'n') + '">' + sg(axp) + '</span>' : '') + '<i class="car"></i></button>';
+  const wdy = (() => { const w = E.pd(ui.date).getUTCDay(); return w >= 1 && w <= 5; })(), rdn = res.days[ui.date], needs = wdy && !(rdn && rdn.waive) ? members.filter(i => i.dailyMin && (E.num(v[i.id]) || 0) < i.dailyMin && (!i.dailyMinFrom || ui.date >= i.dailyMinFrom)).map(shortName) : [];
+  let h = '<div class="act' + (open ? ' open' : '') + (done.length ? ' has' : '') + '" style="--gc:' + scol(members[0].skill) + '"><button class="actb" data-act="actopen" data-id="' + cat.id + '"><b>' + esc(cat.label) + '</b><span class="unit">' + (done.length ? esc(done.join(', ')) : 'nothing yet') + '</span>' + (needs.length ? '<span class="unit dn">min: ' + esc(needs.join(', ')) + '</span>' : '') + (done.length && Math.abs(axp) >= 0.5 ? '<span class="xp ' + (axp > 0 ? 'p' : 'n') + '">' + sg(axp) + '</span>' : '') + '<i class="car"></i></button>';
   if (open) {
     const wk = res.weekly.find(w => w.id === sel.id);
     h += '<div class="actp">' + (members.length > 1 ? '<select data-in="actsel" data-cat="' + cat.id + '">' + members.map(i => opt(i.id, shortName(i), sel.id)).join('') + '</select>' : '<b>' + esc(shortName(sel)) + '</b>') +

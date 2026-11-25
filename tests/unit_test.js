@@ -97,10 +97,10 @@ console.log('8. weekly goal penalty (applied after the week closes)');
   r = E.compute(s, { today: '2026-11-09' });
   ok(r.days['2026-11-08'].inds.apps_sent.weeklyPen < 0, 'zero applications -> weekly penalty');
   ok(r.days['2026-11-08'].inds.roles_found.weeklyPen < 0, '2/10 roles (<50%) -> small penalty');
-  day(s, '2026-11-04', { apps_sent: 2, roles_found: 8 }, ['afternoon']);
+  day(s, '2026-11-04', { apps_sent: 5, roles_found: 8 }, ['afternoon']);
   r = E.compute(s, { today: '2026-11-09' });
   ok(!r.days['2026-11-08'].inds.apps_sent.weeklyPen && !r.days['2026-11-08'].inds.roles_found.weeklyPen, 'goals met -> no penalty');
-  ok(near(r.days['2026-11-04'].inds.apps_sent.xp, r.full.apps_sent * 7), '2 applications at goal = full weekly potential');
+  ok(near(r.days['2026-11-04'].inds.apps_sent.xp, r.full.apps_sent * 7), '5 applications at goal = full weekly potential');
 }
 console.log('9. every-other-day study and rest day credit');
 {
@@ -241,10 +241,10 @@ console.log('18. recommendations build a schedule from what is unfulfilled');
   const txt = rec.schedule.map(x => x.text).join(' | ');
   ok(rec.stage === 'afternoon' && rec.schedule.length > 4, 'afternoon schedule has ' + rec.schedule.length + ' items');
   ok(!/German/.test(txt) && !/Workout/.test(txt), 'German (done) and workout (done) are not scheduled again');
-  ok(/Applications/.test(txt) && /Operations Research/.test(txt) && /lunch/.test(txt) && /Walk/.test(txt), 'applications, OR, lunch and walk are scheduled');
+  ok(/Applications/.test(txt) && /Job search/.test(txt) && /Upskilling/.test(txt) && /lunch/.test(txt), 'applications, job search, upskilling and lunch are scheduled');
   const times = rec.schedule.map(x => x.startMin); ok(times.every((x, i) => i === 0 || x >= times[i - 1]), 'schedule is in time order');
   ok(rec.schedule[rec.schedule.length - 1].text.startsWith('Lights out') && /23:15/.test(rec.schedule[rec.schedule.length - 1].start), 'ends with lights out at 23:15');
-  const apps = rec.schedule.filter(x => /Applications/.test(x.text)).reduce((a, x) => a + x.mins, 0); ok(apps === 120, 'applications target is 2 h (' + apps + ' min)');
+  const apps = rec.schedule.filter(x => /Applications/.test(x.text)).reduce((a, x) => a + x.mins, 0); ok(apps === 60, 'applications target is 1 h (' + apps + ' min)'); ok(/send at least 1 today/.test(txt) && /contact at least 1 lead/.test(txt), 'weekday minimums are on the plan');
   ok(rec.rewards.some(x => /free evening/i.test(x.name)), 'daily reward (free evening) is listed');
   const rest = E.recommend(s, r, d, 8 * 60); ok(rest.stage === 'morning', 'morning stage');
 }
@@ -272,11 +272,13 @@ console.log('18c. smoked indicator (inverted yes/no) and composite rewards');
 console.log('18d. daily reward and meta milestone');
 {
   const s = mk('2026-11-02'); const d = '2026-11-03';
-  day(s, d, { job_time: 120, study_de: 60, study_or: 60 }, ['afternoon']);
+  day(s, d, { job_time: 60, job_search: 60, apps_sent: 1, outreach: 1, study_de: 60, study_or: 60 }, ['afternoon']);
   let r = E.compute(s, { today: d, viewDate: d });
   ok(r.quests.find(q => q.id === 'q_free_eve').done && !r.quests.find(q => q.id === 'q_night_out').done, 'free evening unlocked by the plan, night out needs the full day');
   s.logs[d].v.study_or = 30; r = E.compute(s, { today: d, viewDate: d });
   ok(!r.quests.find(q => q.id === 'q_free_eve').done, 'not unlocked when OR is short');
+  s.logs[d].v.study_gis = 60; r = E.compute(s, { today: d, viewDate: d }); ok(r.quests.find(q => q.id === 'q_free_eve').done, 'GIS counts as the upskilling hour instead of OR');
+  delete s.logs[d].v.study_gis; s.logs[d].v.outreach = 0; r = E.compute(s, { today: d, viewDate: d }); ok(!r.quests.find(q => q.id === 'q_free_eve').done, 'no lead contacted on a weekday: free evening is locked'); s.logs[d].v.outreach = 1;
   ok(r.quests.find(q => q.id === 'q_holiday').target === 4 && r.quests.find(q => q.id === 'q_holiday').value === 0, 'holiday needs 4 sub-milestones, has 0');
   s.config.quests.find(q => q.id === 'q_holiday').metric.ids = ['q_free_eve']; s.config.quests.find(q => q.id === 'q_holiday').target = 1; s.logs[d].v.study_or = 60;
   r = E.compute(s, { today: d, viewDate: d }); ok(r.quests.find(q => q.id === 'q_holiday').done, 'meta milestone is done when its sub-milestones are done');
@@ -386,6 +388,41 @@ console.log('26. needs bars are fed by what you log');
   const s4 = mk('2026-11-03'); r = E.compute(s4, { today: d, viewDate: d }); ok(!bar(r, 'Movement').any, 'nothing logged: the bar says so');
   const old = E.defaultState(d).config; old.rev = 7; const mv = old.bars.find(b => b.id === 'b_move'); mv.src = ['walk']; delete mv.mode;
   E.upgradeConfig(old); ok(old.bars.find(b => b.id === 'b_move').src.join() === 'walk,workout', 'a rev 7 config gets the new Movement sources');
+}
+
+console.log('27. job search: weekday minimums, GIS, fitness hour, upgrade');
+{
+  const s = mk('2026-11-02');                                   // Mon 2 Nov
+  day(s, '2026-11-03', { job_time: 60, job_search: 60, study_de: 60, study_or: 60 }, ['afternoon', 'night']);   // Tue: no application, no lead
+  day(s, '2026-11-04', { apps_sent: 1, outreach: 1, study_gis: 60 }, ['afternoon', 'night']);                   // Wed: both minimums, GIS instead of OR
+  day(s, '2026-11-08', { study_de: 0 }, ['afternoon']);                                                          // Sun
+  let r = E.compute(s, { today: '2026-11-09' });
+  ok(r.days['2026-11-03'].inds.apps_sent.state === 'miss' && r.days['2026-11-03'].inds.apps_sent.xp === -8, 'Tuesday without an application: small penalty (-8)');
+  ok(r.days['2026-11-03'].inds.outreach.state === 'miss' && r.days['2026-11-03'].inds.outreach.xp === -5, 'Tuesday without a lead: small penalty (-5)');
+  ok(r.days['2026-11-04'].inds.apps_sent.xp > 0 && r.days['2026-11-04'].inds.outreach.xp === 15, 'Wednesday with both: application earns XP, lead earns 15');
+  ok(r.days['2026-11-08'].inds.apps_sent.state !== 'miss' && r.days['2026-11-08'].inds.outreach.state !== 'miss', 'weekends have no minimum');
+  ok(r.days['2026-11-04'].inds.study_or.state === 'neutral' && r.days['2026-11-04'].inds.study_gis.xp > 0, 'GIS hour covers upskilling, OR is not penalised');
+  ok(r.days['2026-11-03'].inds.study_gis.xp === 0, 'GIS never penalises on its own');
+  const t = E.compute(s, { today: '2026-11-05' }); ok(t.days['2026-11-05'].inds.apps_sent.state === 'pending', 'today is pending, not penalised yet');
+  const w = JSON.parse(JSON.stringify(s)); w.logs['2026-11-03'].token = true; r = E.compute(w, { today: '2026-11-09' });
+  ok(r.days['2026-11-03'].inds.apps_sent.state === 'waived', 'a life token waives the minimum penalty');
+  // planner: fitness hour and job blocks
+  const p = mk('2026-11-02'); day(p, '2026-11-03', { walk: 20 }, ['morning']);
+  const rr = E.compute(p, { today: '2026-11-03' }); const rec = E.recommend(p, rr, '2026-11-03', 10 * 60);
+  const txt = rec.schedule.map(x => x.text + ' ' + x.mins).join(' | ');
+  ok(/Fitness hour/.test(txt) || /Workout/.test(txt), 'a fitness hour is planned');
+  const sum = k => rec.schedule.filter(x => k.test(x.text)).reduce((a, x) => a + x.mins, 0);
+  ok(sum(/Applications/) === 60 && sum(/Job search/) === 60 && sum(/German/) === 60 && sum(/Upskilling/) === 60, 'one hour each: applications, search, German, upskilling');
+  // upgrade from rev 8
+  const old = E.defaultState('2026-11-02').config; old.rev = 8;
+  old.skills = old.skills.filter(x => x.id !== 'gis'); old.indicators = old.indicators.filter(i => i.id !== 'job_search' && i.id !== 'study_gis');
+  const jt = old.indicators.find(i => i.id === 'job_time'); jt.target = 120; jt.w = 3; const ap = old.indicators.find(i => i.id === 'apps_sent'); ap.goal = 2; delete ap.dailyMin;
+  E.upgradeConfig(old, '2026-11-25');
+  const g = id => old.indicators.find(i => i.id === id);
+  ok(g('job_time').target === 60 && g('job_search') && g('study_gis') && old.skills.some(x => x.id === 'gis') && g('apps_sent').goal === 5 && g('apps_sent').dailyMin === 1, 'a rev 8 config gets the job-search setup');
+  ok(g('apps_sent').dailyMinFrom === '2026-11-25' && g('outreach').dailyMinFrom === '2026-11-25', 'minimums apply from the upgrade day, past days are not penalised');
+  const os = { v: 2, config: old, logs: {}, months: {}, bonuses: [], claims: {}, todos: [], startDate: '2026-11-02' };
+  const ro = E.compute(os, { today: '2026-11-26' }); ok(ro.days['2026-11-24'].inds.apps_sent.state !== 'miss' && ro.days['2026-11-25'].inds.apps_sent.state === 'miss', 'old weekdays unpenalised, new ones penalised');
 }
 
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));

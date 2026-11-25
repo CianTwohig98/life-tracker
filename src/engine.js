@@ -84,9 +84,9 @@ const HOME_TASKS = [
   { id: 't_dishes', label: 'Dishes, wipe counters', fill: { kitchen: 25 }, xp: 5 },
   { id: 't_hall', label: 'Tidy hallway', fill: { hallway: 30 }, xp: 5 }
 ];
-const REV = 8;
+const REV = 9;
 const ALL3 = ['morning', 'afternoon', 'night'], PN = ['afternoon', 'night'];
-const MULTI = { study_de: ALL3, study_or: ALL3, job_time: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: PN, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: PN, avoided: PN };
+const MULTI = { study_de: ALL3, study_or: ALL3, study_gis: ALL3, job_time: ALL3, job_search: ALL3, reading: ALL3, walk: ALL3, water: ALL3, workout: ALL3, home: PN, cashflow: PN, roles_found: PN, apps_sent: ALL3, org_browsed: PN, uni_browsed: PN, coffee_chat: PN, outreach: ALL3, avoided: PN };
 
 function defaultConfig() {
   const settings = {
@@ -106,7 +106,7 @@ function defaultConfig() {
     sk('sleep', 'Sleep', 'Health'), sk('fitness', 'Fitness', 'Health'), sk('nutrition', 'Nutrition', 'Health'),
     sk('supplements', 'Supplements', 'Health'), sk('hygiene', 'Hygiene', 'Health'), sk('wellbeing', 'Wellbeing', 'Health'),
     sk('career', 'Career', 'Career & upskilling'), sk('german', 'German', 'Career & upskilling'),
-    sk('or', 'Operations Research', 'Career & upskilling'), sk('reading', 'Reading', 'Career & upskilling'),
+    sk('or', 'Operations Research', 'Career & upskilling'), sk('gis', 'GIS', 'Career & upskilling'), sk('reading', 'Reading', 'Career & upskilling'),
     sk('finance', 'Finance', 'Lifestyle'), sk('household', 'Household', 'Lifestyle'), sk('social', 'Social', 'Lifestyle'),
     sk('looks', 'Looks', 'Lifestyle'), sk('focus', 'Focus', 'Lifestyle'), sk('awareness', 'Self-awareness', 'Lifestyle')
   ];
@@ -144,16 +144,18 @@ function defaultConfig() {
     I({ id: 'mood', name: 'How are you feeling?', skill: 'wellbeing', slot: 'night', kind: 'rating', w: 2, noPenalty: true, hint: 'Honest answers never cost XP.' }),
     I({ id: 'weight', name: 'Weight (kg)', skill: 'wellbeing', slot: 'morning', kind: 'weight', w: 1, optional: true, unit: 'kg', step: 0.1, def: 80 }),
     // ---- Career
-    I({ id: 'job_time', name: 'Job / PhD applications', skill: 'career', slot: 'afternoon', kind: 'effort', w: 3, unit: 'min', target: 120, everyN: 1, relax: true, def: 120, hint: 'Target: 2 h per day of searching and applying.' }),
+    I({ id: 'job_time', name: 'Applications: writing and sending', skill: 'career', slot: 'afternoon', kind: 'effort', w: 2, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, hint: 'Target: 1 h per day on applications.' }),
+    I({ id: 'job_search', name: 'Job search: roles and leads', skill: 'career', slot: 'afternoon', kind: 'effort', w: 2, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, hint: 'Target: 1 h per day finding roles and leads.' }),
     I({ id: 'roles_found', name: 'Suitable roles found', skill: 'career', slot: 'afternoon', kind: 'count', w: 2, goal: 10, hint: 'Weekly goal: 10' }),
-    I({ id: 'apps_sent', name: 'Applications sent', skill: 'career', slot: 'afternoon', kind: 'count', w: 3, goal: 2, hint: 'Weekly goal: at least 2' }),
+    I({ id: 'apps_sent', name: 'Applications sent', skill: 'career', slot: 'afternoon', kind: 'count', w: 3, goal: 5, dailyMin: 1, missXp: -8, hint: 'Minimum 1 per weekday (5 a week).' }),
     I({ id: 'org_browsed', name: 'Browsed an entire organisation', skill: 'career', slot: 'afternoon', kind: 'count', abs: true, optional: true, unitXp: 8, dayCap: 3 }),
     I({ id: 'uni_browsed', name: 'Browsed an entire university', skill: 'career', slot: 'afternoon', kind: 'count', abs: true, optional: true, unitXp: 25, dayCap: 2 }),
     I({ id: 'coffee_chat', name: 'Coffee with an experienced person', skill: 'career', slot: 'afternoon', kind: 'count', abs: true, optional: true, unitXp: 40, dayCap: 1 }),
-    I({ id: 'outreach', name: 'Reached out to someone at a target organisation', skill: 'career', slot: 'afternoon', kind: 'count', abs: true, optional: true, unitXp: 15, dayCap: 3 }),
+    I({ id: 'outreach', name: 'Leads contacted', skill: 'career', slot: 'afternoon', kind: 'count', abs: true, optional: true, unitXp: 15, dayCap: 5, dailyMin: 1, missXp: -5, hint: 'Minimum 1 per weekday: someone at a target organisation, a recruiter, a contact.' }),
     // ---- German / OR / Reading
     I({ id: 'study_de', name: 'German study', skill: 'german', slot: 'afternoon', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60 }),
-    I({ id: 'study_or', name: 'Operations Research study', skill: 'or', slot: 'afternoon', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60 }),
+    I({ id: 'study_or', name: 'Operations Research study', skill: 'or', slot: 'afternoon', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, altWith: ['study_gis'], hint: 'Upskilling hour: Operations Research or GIS.' }),
+    I({ id: 'study_gis', name: 'GIS study', skill: 'gis', slot: 'afternoon', kind: 'effort', w: 1, optional: true, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, altWith: ['study_or'], hint: 'Counts as the upskilling hour instead of Operations Research.' }),
     I({ id: 'reading', name: 'Reading', skill: 'reading', slot: 'night', kind: 'effort', w: 1, unit: 'min', target: 60, everyN: 1, relax: true, def: 60, hint: 'Books, literature, newspaper, websites.' }),
     // ---- Finance
     I({ id: 'cashflow', name: 'Cashflow today', skill: 'finance', slot: 'night', kind: 'cashflow', w: 3, goal: 100, ref: 25, ideal: 20, hint: 'Spending counts 1.2x against earnings. Earned includes saved or invested.' }),
@@ -183,10 +185,11 @@ function defaultConfig() {
   ];
   const Q = (id, name, reward, metric, target, period, xp, skill) => ({ id, name, reward, metric, target, period, xp, skill });
   const clean8 = { ind: 'sleep_dur', op: '>=', val: 7.5, and: { ind: 'sober', op: '==', val: true } };
-  const plan = [{ ind: 'study_de', op: '>=', val: 60 }, { ind: 'study_or', op: '>=', val: 60 }];
+  const plan = [{ ind: 'job_search', op: '>=', val: 60 }, { ind: 'study_de', op: '>=', val: 60 }, { ind: 'apps_sent', op: '>=', val: 1, wd: true }, { ind: 'outreach', op: '>=', val: 1, wd: true }];
+  const upskill = [{ ind: 'study_or', op: '>=', val: 60 }, { ind: 'study_gis', op: '>=', val: 60 }];
   const quests = [
-    Q('q_free_eve', 'Daily plan done: free evening', 'Free evening: play games with friends', { type: 'days', ind: 'job_time', op: '>=', val: 120, all: plan }, 1, 'day', 0, 'career'),
-    Q('q_night_out', 'Full day: night out', 'Night out: cinema or a bar with friends', { type: 'days', ind: 'job_time', op: '>=', val: 120, all: plan.concat([{ ind: 'walk', op: '>=', val: 30 }, { ind: 'smoked', op: '==', val: false }, { ind: 'read_bed', op: '==', val: true }]) }, 1, 'day', 0, 'career'),
+    Q('q_free_eve', 'Daily plan done: free evening', 'Free evening: play games with friends', { type: 'days', ind: 'job_time', op: '>=', val: 60, all: plan, any: upskill }, 1, 'day', 0, 'career'),
+    Q('q_night_out', 'Full day: night out', 'Night out: cinema or a bar with friends', { type: 'days', ind: 'job_time', op: '>=', val: 60, any: upskill, all: plan.concat([{ ind: 'walk', op: '>=', val: 30 }, { ind: 'smoked', op: '==', val: false }, { ind: 'read_bed', op: '==', val: true }]) }, 1, 'day', 0, 'career'),
     Q('q_train_wk', 'Training week: 4 sessions', 'Cinema night', { type: 'wk_count', ind: 'workout' }, 4, 'week', 100, 'fitness'),
     Q('q_sleep_wk', 'Clean 8 h sleep, Monday to Friday', '', Object.assign({ type: 'days', weekdays: true }, clean8), 5, 'week', 150, 'sleep'),
     Q('q_sleep_one', 'First clean 8 h night', '', Object.assign({ type: 'days' }, clean8), 1, 'all', 50, 'sleep'),
@@ -215,10 +218,21 @@ function defaultConfig() {
 /* Momentum: every to-do finished on a day lifts that day's positive habit XP (to-do XP itself is not boosted). */
 const MOMENTUM = [0, 0.10, 0.18, 0.25];
 const momentumFor = (n, S) => { const t = (S && S.momentum) || MOMENTUM; return t[Math.max(0, Math.min(n, t.length - 1))] || 0; };
-function upgradeConfig(cfg) {
+function upgradeConfig(cfg, today) {
   if (!cfg || (cfg.rev || 0) >= REV) return cfg;
   const def = defaultConfig(), byId = {}; def.indicators.forEach(i => { byId[i.id] = i; });
   const from = cfg.rev || 0;
+  if (from < 9) {
+    const ids = cfg.indicators || [], get = id => ids.find(i => i.id === id), at = id => ids.findIndex(i => i.id === id);
+    if (cfg.skills && !cfg.skills.some(s => s.id === 'gis')) { const k = cfg.skills.findIndex(s => s.id === 'or'); cfg.skills.splice(k >= 0 ? k + 1 : cfg.skills.length, 0, { id: 'gis', name: 'GIS', group: 'Career & upskilling' }); }
+    const jt = get('job_time'); if (jt) { jt.name = byId.job_time.name; jt.target = 60; jt.def = 60; jt.w = 2; jt.hint = byId.job_time.hint; }
+    if (!get('job_search')) { const k = at('job_time'); ids.splice(k >= 0 ? k + 1 : ids.length, 0, JSON.parse(JSON.stringify(byId.job_search))); }
+    if (!get('study_gis')) { const k = at('study_or'); ids.splice(k >= 0 ? k + 1 : ids.length, 0, JSON.parse(JSON.stringify(byId.study_gis))); }
+    const so = get('study_or'); if (so) { so.altWith = ['study_gis']; so.hint = byId.study_or.hint; }
+    for (const id of ['apps_sent', 'outreach']) { const i = get(id), d = byId[id]; if (!i || !d) continue; i.slots = d.slots.slice(); i.dailyMin = d.dailyMin; i.missXp = d.missXp; i.hint = d.hint; if (today) i.dailyMinFrom = today; }
+    const ap = get('apps_sent'); if (ap) ap.goal = 5; const ou = get('outreach'); if (ou) { ou.name = byId.outreach.name; ou.dayCap = 5; }
+    for (const q of (cfg.quests || [])) { const d = (def.quests || []).find(x => x.id === q.id); if (d && (q.id === 'q_free_eve' || q.id === 'q_night_out')) q.metric = JSON.parse(JSON.stringify(d.metric)); }
+  }
   if (from < 8) { const mv = (cfg.bars || []).find(b => b.id === 'b_move'); if (mv && mv.src.length === 1 && mv.src[0] === 'walk') { mv.src = ['walk', 'workout']; mv.mode = 'max'; } }
   if (from < 7) {
     for (const i of (cfg.indicators || [])) { const d = byId[i.id]; if (d && d.abs && d.kind === 'binary') { i.abs = true; i.optional = true; i.unitXp = d.unitXp; } }
@@ -336,6 +350,8 @@ H.effort = (ind, c) => {
     if (r >= 0.5) c.T.lastDone[ind.id] = c.d;
     return { xp: F * g * span, state: r >= 0.6 ? 'ok' : 'partial', note: span > 1 ? 'covers ' + span + ' days' : '' };
   }
+  if (ind.altWith && ind.altWith.some(id => (num(c.v[id]) || 0) > 0)) return { xp: 0, state: 'neutral', note: 'done in the other upskilling area' };
+  if (ind.optional) return { xp: 0, state: 'none' };
   if (ind.relax && c.dayType === 'rest') return { xp: F * c.S.restCredit, state: 'rest', note: 'planned rest' };
   if (ind.relax && c.dayType === 'fun') return { xp: 0, state: 'neutral', note: 'fun day' };
   if (n > 1 && last && since < n) return { xp: 0, state: 'neutral', note: 'not due yet' };
@@ -380,6 +396,7 @@ H.workout = (ind, c) => {
 };
 H.count = (ind, c) => {
   const n = Math.max(0, Math.floor(num(c.v[ind.id]) || 0));
+  if (!n && ind.dailyMin && c.weekday && (!ind.dailyMinFrom || c.d >= ind.dailyMinFrom)) return c.isToday ? { xp: 0, state: 'pending' } : { xp: ind.missXp != null ? ind.missXp : -5, state: 'miss', note: 'weekday minimum ' + ind.dailyMin + ' not met' };
   if (ind.abs) { const k = Math.min(n, ind.dayCap || 99); return { xp: (ind.unitXp || 0) * k, state: k ? 'ok' : 'none' }; }
   if (!n) return { xp: 0, state: 'none' };
   const F = c.full(ind), goal = ind.goal, unit = F * 7 / goal, before = c.T.weekCount[ind.id] || 0;
@@ -530,7 +547,7 @@ function compute(state, opts) {
     }
 
     const ctx = { d, v, S, T, dayType, prevDayType: prevType, waive, tScale: waive ? (S.modeScale[mode] || 1) : 1,
-      full: ind => FULL[ind.id], needLevel: {}, sess: null, logged: false, sf: 1, roomTotals: {}, roomDetail: {}, cash: null, foodEur: 0 };
+      full: ind => FULL[ind.id], isToday, weekday: dw >= 1 && dw <= 5, needLevel: {}, sess: null, logged: false, sf: 1, roomTotals: {}, roomDetail: {}, cash: null, foodEur: 0 };
     const out = {};
     for (const ind of inds) {
       const meta = KIND_META[ind.kind] || {};
@@ -804,7 +821,9 @@ function evalQuest(q, state, res, today, byId) {
         if (m.op) {
           if (!cmp(condValue(cfg, m.ind, dl), m.op, m.val)) continue;
           if (m.and && !cmp(condValue(cfg, m.and.ind, dl), m.and.op, m.and.val)) continue;
-          if (m.all && m.all.some(c2 => !cmp(condValue(cfg, c2.ind, dl), c2.op, c2.val))) continue;
+          const wkend = [0, 6].includes(dowOf(d));
+          if (m.all && m.all.some(c2 => !(c2.wd && wkend) && !cmp(condValue(cfg, c2.ind, dl), c2.op, c2.val))) continue;
+          if (m.any && !m.any.some(c2 => cmp(condValue(cfg, c2.ind, dl), c2.op, c2.val))) continue;
           val++;
         } else if (r && r.inds[m.ind] && r.inds[m.ind].xp > 0) val++;
       } else if (m.type === 'wk_max') { const x = num(v[m.ind] && v[m.ind][m.field]); if (x != null) val = Math.max(val, x); }
@@ -854,9 +873,23 @@ function recommend(state, res, date, nowIn) {
   const E_num = x => (x === undefined || x === null || x === '' || isNaN(Number(x))) ? null : Number(x);
   if (!waived) {
     if (!rest && !cheatOn) {
-      const wkc = k => { const w = res.weekly.find(x => x.id === k); return w ? k + ' ' + w.count + '/' + w.goal : ''; };
-      const ji = ind('job_time'); if (ji) blocks(L.A, 'job_time', 'Applications and job search', left('job_time'), ji.skill, 'this week: ' + res.weekly.filter(w => ['roles_found', 'apps_sent'].includes(w.id)).map(w => w.name.toLowerCase() + ' ' + w.count + '/' + w.goal).join(', '));
-      for (const id of ['study_de', 'study_or']) { const i = ind(id); if (i) blocks(L.B, id, id === 'study_de' ? 'German' : 'Operations Research', left(id), i.skill); }
+      const cnt = id => E_num(v[id]) || 0, wkd = dw >= 1 && dw <= 5;
+      const ap = ind('apps_sent'), ld = ind('outreach'), wkRow = id => { const w = res.weekly.find(x => x.id === id); return w ? w.count + '/' + w.goal : ''; };
+      const ji = ind('job_time'), js = ind('job_search');
+      if (ji) {
+        const need = wkd && ap && cnt('apps_sent') < 1;
+        blocks(L.A, 'job_time', 'Applications: write and send', left('job_time'), ji.skill, need ? 'send at least 1 today' + (wkRow('apps_sent') ? ', week ' + wkRow('apps_sent') : '') : '');
+        if (need && !L.A.length) L.A.push({ kind: 'work', id: 'apps_min', mins: 30, text: 'Send today\'s application, 30 min', short: 'send 1 application', skill: ji.skill });
+      }
+      if (js) {
+        const need = wkd && ld && cnt('outreach') < 1;
+        const before = L.A.length;
+        blocks(L.A, 'job_search', 'Job search: find roles and leads', left('job_search'), js.skill, need ? 'contact at least 1 lead today' : '');
+        if (need && L.A.length === before) L.A.push({ kind: 'work', id: 'lead_min', mins: 20, text: 'Contact one lead, 20 min', short: 'contact 1 lead', skill: js.skill });
+      }
+      const de = ind('study_de'); if (de) blocks(L.B, 'study_de', 'German', left('study_de'), de.skill);
+      const uo = ind('study_or'), ug = ind('study_gis');
+      if (uo || ug) { const tg = (uo || ug).target, done = (uo ? cnt('study_or') : 0) + (ug ? cnt('study_gis') : 0); blocks(L.B, 'study_or', 'Upskilling (' + (uo && ug ? 'Operations Research or GIS' : uo ? 'Operations Research' : 'GIS') + ')', Math.max(0, tg * scale - done), (uo || ug).skill); }
     }
     const rd = ind('reading'); if (rd && !cheatOn) { const rem = left('reading', 1) - (ind('read_bed') && !(v.read_bed === true) ? 30 : 0); if (rem > 5) blocks(L.B, 'reading', 'Reading (book, literature, newspaper, websites)', rem, rd.skill); }
     const wo = ind('workout');
@@ -864,7 +897,12 @@ function recommend(state, res, date, nowIn) {
       const need = wsum.goal - wsum.count, daysLeft = 7 - ((dw + 6) % 7);
       if (need > 0) { const b = { kind: 'body', id: 'workout', mins: wo.target || 60, text: 'Workout, ' + (wo.target || 60) + ' min (' + wsum.count + ' of ' + wsum.goal + ' sessions this week)', short: 'workout', skill: wo.skill }; if (need >= daysLeft) L.C.unshift(Object.assign(b, { urgent: true })); else L.C.push(b); }
     }
-    const wk = ind('walk'); if (wk && !(E_num(v.walk) >= wk.target)) L.C.push({ kind: 'body', id: 'walk', mins: wk.target, text: 'Walk, ' + wk.target + ' min', short: 'walk', skill: wk.skill });
+    const wk = ind('walk');
+    if (wk) {
+      const hasWo = L.C.some(b => b.id === 'workout'), woMin = v.workout && E_num(v.workout.min) > 0 ? E_num(v.workout.min) : 0, fitDone = woMin + (E_num(v.walk) || 0), hour = Math.round(60 * scale);
+      if (rest || cheatOn) { if (!(E_num(v.walk) >= wk.target)) L.C.push({ kind: 'body', id: 'walk', mins: wk.target, text: 'Walk, ' + wk.target + ' min', short: 'walk', skill: wk.skill }); }
+      else if (!hasWo && fitDone < hour - 5) { const m = Math.max(15, Math.min(hour, Math.ceil((hour - fitDone) / 15) * 15)); L.C.push({ kind: 'body', id: 'walk', mins: m, text: 'Fitness hour: walk, stretch or physio, ' + m + ' min' + (fitDone ? ' (' + Math.round(fitDone) + ' done)' : ''), short: 'fitness ' + m + ' min', skill: wk.skill }); }
+    }
     const home = ind('home'), rd2 = dr && dr.rooms && dr.rooms.home;
     if (home && rd2 && rd2.total < 65 && !cheatOn) {
       const low = home.rooms.find(r => r.id === rd2.lowest); let best = null, g = 0; for (const tk of home.tasks) { const f = tk.fill[rd2.lowest] || 0; if (f > g) { g = f; best = tk; } }
